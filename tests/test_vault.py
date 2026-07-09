@@ -49,13 +49,14 @@ def test_two_encryptions_differ_but_both_decrypt():
     assert a != b  # random salt + Fernet IV
     assert decrypt_vault(a, "pw") == decrypt_vault(b, "pw") == VAULT
 
-
 def test_save_load_file_roundtrip_and_perms(tmp_path):
     p = tmp_path / "vault.enc"
     save_vault(VAULT, str(p), "pw")
     assert load_vault(str(p), "pw") == VAULT
-    mode = stat.S_IMODE(os.stat(p).st_mode)
-    assert mode == 0o600  # owner-only
+
+    if os.name != "nt":
+        mode = stat.S_IMODE(os.stat(p).st_mode)
+        assert mode == 0o600  # owner-only on POSIX systems
 
 
 def test_end_to_end_tokenize_persist_restore(tmp_path):
