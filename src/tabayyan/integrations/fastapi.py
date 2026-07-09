@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -47,6 +47,8 @@ class TabayyanPrivacyMiddleware:
         block_cross_border: bool = False,
         include_response_headers: bool = True,
         max_body_size: int | None = DEFAULT_MAX_BODY_SIZE,
+        include_fields: Collection[str] | None = None,
+        exclude_fields: Collection[str] | None = None,
     ) -> None:
         if max_body_size is not None and max_body_size < 0:
             raise ValueError("max_body_size must be a non-negative integer or None")
@@ -55,6 +57,8 @@ class TabayyanPrivacyMiddleware:
         self._destination = destination
         self._include_response_headers = include_response_headers
         self._max_body_size = max_body_size
+        self._include_fields = self._normalize_fields(include_fields)
+        self._exclude_fields = self._normalize_fields(exclude_fields)
 
         audit = AuditLog(path=audit_path) if audit_path else None
         self._guard = Guard(
@@ -171,8 +175,17 @@ class TabayyanPrivacyMiddleware:
             redacted_count=redacted_count,
         )
 
-    def _protect_value(self, value: Any) -> tuple[Any, int]:
+    def _protect_value(
+        self,
+        value: Any,
+        *,
+        field_name: str | None = None,
+        force_protect: bool = False,
+    ) -> tuple[Any, int]:
         if isinstance(value, str):
+            if not self._should_protect_field(field_name, force_protect):
+                return value, 0
+
             protected = self._guard.protect(
                 value,
                 destination=self._destination,
@@ -185,7 +198,11 @@ class TabayyanPrivacyMiddleware:
             redacted_count = 0
 
             for item in value:
-                protected_item, item_count = self._protect_value(item)
+                protected_item, item_count = self._protect_value(
+                    item,
+                    field_name=field_name,
+                    force_protect=force_protect,
+                )
                 protected_items.append(protected_item)
                 redacted_count += item_count
 
@@ -196,13 +213,71 @@ class TabayyanPrivacyMiddleware:
             redacted_count = 0
 
             for key, item in value.items():
-                protected_item, item_count = self._protect_value(item)
-                protected_dict[str(key)] = protected_item
+                key_name = str(key)
+
+                if self._field_is_excluded(key_name):
+                    protected_dict[key_name] = item
+                    continue
+
+                protected_item, item_count = self._protect_value(
+                    item,
+                    field_name=key_name,
+                    force_protect=(
+                        force_protect or self._field_is_included(key_name)
+                    ),
+                )
+                protected_dict[key_name] = protected_item
                 redacted_count += item_count
 
             return protected_dict, redacted_count
 
         return value, 0
+
+    def _should_protect_field(
+        self,
+        field_name: str | None,
+        force_protect: bool,
+    ) -> bool:
+        if self._field_is_excluded(field_name):
+            return False
+
+        if force_protect:
+            return True
+
+        if self._include_fields is None:
+            return True
+
+        return self._field_is_included(field_name)
+
+    def _field_is_included(self, field_name: str | None) -> bool:
+        if self._include_fields is None or field_name is None:
+            return False
+
+        return self._normalize_field(field_name) in self._include_fields
+
+    def _field_is_excluded(self, field_name: str | None) -> bool:
+        if self._exclude_fields is None or field_name is None:
+            return False
+
+        return self._normalize_field(field_name) in self._exclude_fields
+
+    def _normalize_fields(
+        self,
+        fields: Collection[str] | None,
+    ) -> set[str] | None:
+        if fields is None:
+            return None
+
+        if isinstance(fields, str):
+            return {self._normalize_field(fields)}
+
+        return {
+            self._normalize_field(field)
+            for field in fields
+        }
+
+    def _normalize_field(self, field: str) -> str:
+        return str(field).strip().lower()
 
     async def _read_body(self, receive: Receive) -> bytes:
         chunks: list[bytes] = []
