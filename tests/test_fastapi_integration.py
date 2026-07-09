@@ -6,13 +6,18 @@ from fastapi.testclient import TestClient
 from tabayyan.integrations.fastapi import TabayyanPrivacyMiddleware
 
 
-def create_app(*, include_response_headers: bool = True) -> FastAPI:
+def create_app(
+    *,
+    include_response_headers: bool = True,
+    max_body_size: int | None = 1_000_000,
+) -> FastAPI:
     app = FastAPI()
 
     app.add_middleware(
         TabayyanPrivacyMiddleware,
         destination="https://api.openai.com",
         include_response_headers=include_response_headers,
+        max_body_size=max_body_size,
     )
 
     @app.post("/echo")
@@ -165,3 +170,32 @@ def test_fastapi_middleware_empty_json_body_does_not_crash() -> None:
     assert response.json() == {"body": ""}
     assert response.headers["x-tabayyan-pii-detected"] == "false"
     assert response.headers["x-tabayyan-redacted-count"] == "0"
+
+
+def test_fastapi_middleware_rejects_json_body_larger_than_limit() -> None:
+    client = TestClient(create_app(max_body_size=32))
+
+    response = client.post(
+        "/echo",
+        json={"prompt": "x" * 100},
+    )
+
+    assert response.status_code == 413
+    assert response.json() == {"detail": "Request body too large"}
+
+
+def test_fastapi_middleware_can_disable_body_size_limit() -> None:
+    client = TestClient(create_app(max_body_size=None))
+
+    response = client.post(
+        "/echo",
+        json={"prompt": f"{'x' * 2_000} رقم الهوية 1158813996"},
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert "1158813996" not in body["prompt"]
+    assert response.headers["x-tabayyan-pii-detected"] == "true"
+    assert int(response.headers["x-tabayyan-redacted-count"]) >= 1
