@@ -10,12 +10,23 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from tabayyan import AuditLog, Guard, RedactionMode
 
 
+DEFAULT_MAX_BODY_SIZE = 1_000_000
+
+
 @dataclass(frozen=True)
 class RequestProtectionStats:
     """Summary of PII protection applied to an HTTP request."""
 
     pii_detected: bool
     redacted_count: int
+
+
+class RequestBodyTooLarge(Exception):
+    """Raised when an HTTP request body exceeds the configured safety limit."""
+
+    def __init__(self, max_body_size: int) -> None:
+        self.max_body_size = max_body_size
+        super().__init__(f"Request body exceeds max_body_size={max_body_size}")
 
 
 class TabayyanPrivacyMiddleware:
@@ -35,10 +46,15 @@ class TabayyanPrivacyMiddleware:
         audit_path: str | None = None,
         block_cross_border: bool = False,
         include_response_headers: bool = True,
+        max_body_size: int | None = DEFAULT_MAX_BODY_SIZE,
     ) -> None:
+        if max_body_size is not None and max_body_size < 0:
+            raise ValueError("max_body_size must be a non-negative integer or None")
+
         self._app = app
         self._destination = destination
         self._include_response_headers = include_response_headers
+        self._max_body_size = max_body_size
 
         audit = AuditLog(path=audit_path) if audit_path else None
         self._guard = Guard(
@@ -56,7 +72,16 @@ class TabayyanPrivacyMiddleware:
             await self._app(scope, receive, send)
             return
 
-        body = await self._read_body(receive)
+        if self._request_is_too_large_from_headers(scope):
+            await self._send_payload_too_large(send)
+            return
+
+        try:
+            body = await self._read_body(receive)
+        except RequestBodyTooLarge:
+            await self._send_payload_too_large(send)
+            return
+
         protected_body, stats = self._protect_body(body)
 
         protected_scope = self._with_content_length(scope, len(protected_body))
@@ -97,6 +122,26 @@ class TabayyanPrivacyMiddleware:
         content_type = headers.get(b"content-type", b"").decode("latin-1").lower()
 
         return "application/json" in content_type
+
+    def _request_is_too_large_from_headers(self, scope: Scope) -> bool:
+        if self._max_body_size is None:
+            return False
+
+        content_length = self._content_length(scope)
+
+        return content_length is not None and content_length > self._max_body_size
+
+    def _content_length(self, scope: Scope) -> int | None:
+        headers = self._headers(scope)
+        raw_content_length = headers.get(b"content-length")
+
+        if raw_content_length is None:
+            return None
+
+        try:
+            return int(raw_content_length.decode("latin-1"))
+        except ValueError:
+            return None
 
     def _protect_body(self, body: bytes) -> tuple[bytes, RequestProtectionStats]:
         if not body:
@@ -161,6 +206,7 @@ class TabayyanPrivacyMiddleware:
 
     async def _read_body(self, receive: Receive) -> bytes:
         chunks: list[bytes] = []
+        body_size = 0
 
         while True:
             message = await receive()
@@ -168,12 +214,42 @@ class TabayyanPrivacyMiddleware:
             if message["type"] == "http.disconnect":
                 break
 
-            chunks.append(message.get("body", b""))
+            chunk = message.get("body", b"")
+            body_size += len(chunk)
+
+            if (
+                self._max_body_size is not None
+                and body_size > self._max_body_size
+            ):
+                raise RequestBodyTooLarge(self._max_body_size)
+
+            chunks.append(chunk)
 
             if not message.get("more_body", False):
                 break
 
         return b"".join(chunks)
+
+    async def _send_payload_too_large(self, send: Send) -> None:
+        body = b'{"detail":"Request body too large"}'
+
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 413,
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(body)).encode("utf-8")),
+                ],
+            }
+        )
+        await send(
+            {
+                "type": "http.response.body",
+                "body": body,
+                "more_body": False,
+            }
+        )
 
     def _headers(self, scope: Scope) -> Mapping[bytes, bytes]:
         return {

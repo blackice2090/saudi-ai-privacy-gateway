@@ -23,6 +23,7 @@ print(pr.text)                       # redacted
 print(pr.audit.cross_border_transfer)  # True — external endpoint + personal data
 print(pr.audit.health_data_present)    # category-aware
 ```
+
 ## FastAPI / Starlette request middleware
 
 For FastAPI and Starlette applications, use `TabayyanPrivacyMiddleware` to
@@ -95,6 +96,7 @@ app.add_middleware(
     audit_path="audit.jsonl",
     block_cross_border=False,
     include_response_headers=True,
+    max_body_size=1_000_000,
 )
 ```
 
@@ -103,7 +105,10 @@ Notes:
 - Only JSON request bodies are modified.
 - Non-JSON requests pass through unchanged.
 - The middleware does not call any external service.
+- `max_body_size` defaults to `1_000_000` bytes. JSON requests larger than this limit return `413 Payload Too Large`.
+- Set `max_body_size=None` to disable the body size limit.
 - Raw values are not written to audit logs unless audit configuration explicitly enables it.
+
 ## Cross-border logic (PDPL Art. 29)
 
 If personal data is present **and** the destination is not in-Kingdom, the
