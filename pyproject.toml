@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tabayyan"
+version = "0.8.0"
+description = "Saudi-aware PII detection & redaction for LLM pipelines. Local-first, zero telemetry."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Tabayyan contributors" }]
+keywords = ["pii", "saudi", "ksa", "llm", "privacy", "pdpl", "ndmo", "redaction", "security"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Natural Language :: Arabic",
+    "Natural Language :: English",
+    "Topic :: Security",
+    "Topic :: Text Processing :: Linguistic",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "ruff>=0.4", "build>=1.0", "python-stdnum>=1.19", "cryptography>=42", "hypothesis>=6"]
+docs = ["mkdocs-material>=9"]
+presidio = ["presidio-analyzer>=2.2"]
+crypto = ["cryptography>=42"]
+
+[project.urls]
+Homepage = "https://github.com/nasser-gh/Tabayyan"
+Documentation = "https://github.com/nasser-gh/Tabayyan/tree/main/docs"
+Changelog = "https://github.com/nasser-gh/Tabayyan/blob/main/CHANGELOG.md"
+Source = "https://github.com/nasser-gh/Tabayyan"
+Issues = "https://github.com/nasser-gh/Tabayyan/issues"
+
+[project.scripts]
+tabayyan = "tabayyan.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tabayyan"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py39"
