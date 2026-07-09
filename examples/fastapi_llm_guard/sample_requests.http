@@ -1,0 +1,11 @@
+### Health check
+GET http://127.0.0.1:8000/health
+
+
+### Protected chat request
+POST http://127.0.0.1:8000/chat
+Content-Type: application/json
+
+{
+  "prompt": "حلل حالة العميل. الاسم محمد بن عبدالله، رقم الهوية 1158813996، الجوال +966512345678"
+}
