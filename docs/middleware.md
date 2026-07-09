@@ -23,7 +23,87 @@ print(pr.text)                       # redacted
 print(pr.audit.cross_border_transfer)  # True — external endpoint + personal data
 print(pr.audit.health_data_present)    # category-aware
 ```
+## FastAPI / Starlette request middleware
 
+For FastAPI and Starlette applications, use `TabayyanPrivacyMiddleware` to
+redact PII from JSON request bodies before they reach your route handlers.
+
+Install the optional FastAPI extra:
+
+```bash
+pip install "tabayyan[fastapi]"
+```
+
+Then add the middleware to your application:
+
+```python
+from fastapi import FastAPI
+
+from tabayyan.integrations.fastapi import TabayyanPrivacyMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    TabayyanPrivacyMiddleware,
+    destination="https://api.openai.com",
+)
+```
+
+Any string value inside a JSON body is scanned and protected, including nested
+objects and lists.
+
+```python
+@app.post("/chat")
+def chat(payload: dict[str, object]) -> dict[str, object]:
+    # The payload has already been protected by the middleware.
+    return payload
+```
+
+Example request:
+
+```json
+{
+  "prompt": "رقم الهوية 1158813996، الجوال +966512345678"
+}
+```
+
+The route receives a protected payload:
+
+```json
+{
+  "prompt": "رقم الهوية [SAUDI_NATIONAL_ID]، الجوال [SAUDI_MOBILE]"
+}
+```
+
+By default, the middleware adds response headers that make protection visible to
+upstream gateways, observability tools, or tests:
+
+```text
+x-tabayyan-pii-detected: true
+x-tabayyan-redacted-count: 2
+```
+
+Configure the middleware when needed:
+
+```python
+from tabayyan import RedactionMode
+
+app.add_middleware(
+    TabayyanPrivacyMiddleware,
+    destination="https://api.openai.com",
+    mode=RedactionMode.MASK,
+    audit_path="audit.jsonl",
+    block_cross_border=False,
+    include_response_headers=True,
+)
+```
+
+Notes:
+
+- Only JSON request bodies are modified.
+- Non-JSON requests pass through unchanged.
+- The middleware does not call any external service.
+- Raw values are not written to audit logs unless audit configuration explicitly enables it.
 ## Cross-border logic (PDPL Art. 29)
 
 If personal data is present **and** the destination is not in-Kingdom, the

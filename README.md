@@ -99,6 +99,22 @@ Any other stack (FastAPI, LangChain, batch jobs, your own SDK) plugs in via the
 provider-agnostic `Guard.protect_messages` / `Guard.wrap` — see
 [middleware](docs/middleware.md).
 
+For FastAPI and Starlette apps, install the optional extra and add the reusable
+request middleware:
+
+```bash
+pip install "tabayyan[fastapi]"
+```
+
+```python
+from fastapi import FastAPI
+
+from tabayyan.integrations.fastapi import TabayyanPrivacyMiddleware
+
+app = FastAPI()
+app.add_middleware(TabayyanPrivacyMiddleware, destination="https://api.openai.com")
+```
+
 ## Examples
 
 [Python API](#quick-start) · [CLI](#cli) · [Middleware & audit](docs/middleware.md) · [Presidio](docs/presidio.md) · [Plugins](docs/plugins.md) · [Playground](#playground-demo-web-ui)
