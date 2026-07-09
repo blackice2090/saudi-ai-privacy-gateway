@@ -97,6 +97,8 @@ app.add_middleware(
     block_cross_border=False,
     include_response_headers=True,
     max_body_size=1_000_000,
+    include_fields={"prompt", "messages", "content"},
+    exclude_fields={"metadata"},
 )
 ```
 
@@ -107,6 +109,9 @@ Notes:
 - The middleware does not call any external service.
 - `max_body_size` defaults to `1_000_000` bytes. JSON requests larger than this limit return `413 Payload Too Large`.
 - Set `max_body_size=None` to disable the body size limit.
+- `include_fields` limits protection to selected JSON field names, such as `prompt`, `messages`, or `content`.
+- `exclude_fields` skips selected JSON fields or subtrees, such as `metadata`.
+- If both are set, `exclude_fields` takes precedence over `include_fields`.
 - Raw values are not written to audit logs unless audit configuration explicitly enables it.
 
 ## Cross-border logic (PDPL Art. 29)
