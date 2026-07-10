@@ -27,7 +27,7 @@ or flag them with no validation. **Tabayyan** adds first-class Saudi & Arabic
 identifier support, backed by real checksums — extensible and production-friendly.
 
 ```bash
-pip install tabayyan
+pip install tabayyan-privacy
 ```
 
 > [!NOTE]
@@ -103,7 +103,7 @@ For FastAPI and Starlette apps, install the optional extra and add the reusable
 request middleware:
 
 ```bash
-pip install "tabayyan[fastapi]"
+pip install "tabayyan-privacy[fastapi]"
 ```
 
 ```python
@@ -146,7 +146,7 @@ Details in [playground/README.md](playground/README.md).
 
 ## Status
 
-Current public release: **v0.9.0**. This release adds reusable FastAPI /
+Current public release: **v0.9.1**. This release adds reusable FastAPI /
 Starlette middleware with route, method, and field filtering, request-body
 limits, structured `+json` media-type support, and expanded integration tests.
 Pre-1.0 version numbers track development milestones, and the CHANGELOG
@@ -157,9 +157,9 @@ API guarantees and experimental surfaces are described in
 ## Install
 
 ```bash
-pip install tabayyan             # core (zero dependencies)
-pip install "tabayyan[crypto]"   # + encrypted tokenize vault
-pip install "tabayyan[presidio]" # + Microsoft Presidio recognizers
+pip install tabayyan-privacy     # core (zero dependencies)
+pip install "tabayyan-privacy[crypto]"   # + encrypted tokenize vault
+pip install "tabayyan-privacy[presidio]" # + Microsoft Presidio recognizers
 # from source (dev): pip install -e ".[dev]"
 ```
 
@@ -326,7 +326,7 @@ Already on Microsoft Presidio? Add Tabayyan's validated Saudi/Arabic
 recognizers with one import:
 
 ```bash
-pip install "tabayyan[presidio]"
+pip install "tabayyan-privacy[presidio]"
 ```
 
 ```python
