@@ -8,7 +8,7 @@ managed as Tabayyan moves toward 1.0.
 Tabayyan follows [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 - **Pre-1.0 (`0.x`)** — minor versions *may* contain breaking changes. Every
-  one is documented in the [CHANGELOG](../CHANGELOG.md).
+  one is documented in the [CHANGELOG](https://github.com/blackice2090/saudi-ai-privacy-gateway/blob/main/CHANGELOG.md).
 - **Post-1.0** —
   - **PATCH** — bug fixes only, no public API change.
   - **MINOR** — backward-compatible additions (new detectors, new entities, new
