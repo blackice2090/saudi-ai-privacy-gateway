@@ -50,11 +50,11 @@ fastapi = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nasser-gh/Tabayyan"
-Documentation = "https://github.com/nasser-gh/Tabayyan/tree/main/docs"
-Changelog = "https://github.com/nasser-gh/Tabayyan/blob/main/CHANGELOG.md"
-Source = "https://github.com/nasser-gh/Tabayyan"
-Issues = "https://github.com/nasser-gh/Tabayyan/issues"
+Homepage = "https://github.com/blackice2090/saudi-ai-privacy-gateway"
+Documentation = "https://github.com/blackice2090/saudi-ai-privacy-gateway/tree/main/docs"
+Changelog = "https://github.com/blackice2090/saudi-ai-privacy-gateway/blob/main/CHANGELOG.md"
+Source = "https://github.com/blackice2090/saudi-ai-privacy-gateway"
+Issues = "https://github.com/blackice2090/saudi-ai-privacy-gateway/issues"
 
 [project.scripts]
 tabayyan = "tabayyan.cli:main"
