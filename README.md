@@ -1,7 +1,7 @@
 <div align="center">
 
 <img src="docs/assets/brand/tabayyan-lockup.svg" alt="Tabayyan — Saudi-first PII detection &amp; redaction for LLM pipelines" width="540">
-
+[![CI](https://github.com/blackice2090/saudi-ai-privacy-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/blackice2090/saudi-ai-privacy-gateway/actions/workflows/ci.yml)
 <p>
 <a href="https://pypi.org/project/tabayyan/"><img src="https://img.shields.io/pypi/v/tabayyan.svg" alt="PyPI"></a>
 <a href="https://pypi.org/project/tabayyan/"><img src="https://img.shields.io/pypi/pyversions/tabayyan.svg" alt="Python"></a>
