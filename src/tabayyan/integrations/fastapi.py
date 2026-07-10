@@ -39,6 +39,10 @@ class TabayyanPrivacyMiddleware:
     Request processing can be limited to exact route paths with ``include_paths``
     or skipped for selected paths with ``exclude_paths``. Exclusions take
     precedence when a path appears in both collections.
+
+    HTTP methods can also be filtered with ``include_methods`` and
+    ``exclude_methods``. Method names are normalized to uppercase, and
+    exclusions take precedence over inclusions.
     """
 
     def __init__(
@@ -55,6 +59,8 @@ class TabayyanPrivacyMiddleware:
         exclude_fields: Collection[str] | None = None,
         include_paths: Collection[str] | None = None,
         exclude_paths: Collection[str] | None = None,
+        include_methods: Collection[str] | None = None,
+        exclude_methods: Collection[str] | None = None,
     ) -> None:
         if max_body_size is not None and max_body_size < 0:
             raise ValueError(
@@ -69,6 +75,8 @@ class TabayyanPrivacyMiddleware:
         self._exclude_fields = self._normalize_fields(exclude_fields)
         self._include_paths = self._normalize_paths(include_paths)
         self._exclude_paths = self._normalize_paths(exclude_paths)
+        self._include_methods = self._normalize_methods(include_methods)
+        self._exclude_methods = self._normalize_methods(exclude_methods)
 
         audit = AuditLog(path=audit_path) if audit_path else None
         self._guard = Guard(
@@ -88,6 +96,10 @@ class TabayyanPrivacyMiddleware:
             return
 
         if not self._should_protect_path(scope):
+            await self._app(scope, receive, send)
+            return
+
+        if not self._should_protect_method(scope):
             await self._app(scope, receive, send)
             return
 
@@ -198,6 +210,47 @@ class TabayyanPrivacyMiddleware:
             normalized = normalized.rstrip("/")
 
         return normalized or "/"
+
+    def _should_protect_method(self, scope: Scope) -> bool:
+        method = self._normalize_method(str(scope.get("method", "")))
+
+        if self._method_is_excluded(method):
+            return False
+
+        if self._include_methods is None:
+            return True
+
+        return self._method_is_included(method)
+
+    def _method_is_included(self, method: str) -> bool:
+        if self._include_methods is None:
+            return False
+
+        return self._normalize_method(method) in self._include_methods
+
+    def _method_is_excluded(self, method: str) -> bool:
+        if self._exclude_methods is None:
+            return False
+
+        return self._normalize_method(method) in self._exclude_methods
+
+    def _normalize_methods(
+        self,
+        methods: Collection[str] | None,
+    ) -> set[str] | None:
+        if methods is None:
+            return None
+
+        if isinstance(methods, str):
+            return {self._normalize_method(methods)}
+
+        return {
+            self._normalize_method(method)
+            for method in methods
+        }
+
+    def _normalize_method(self, method: str) -> str:
+        return str(method).strip().upper()
 
     def _is_json_request(self, scope: Scope) -> bool:
         headers = self._headers(scope)

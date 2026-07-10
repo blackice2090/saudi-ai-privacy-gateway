@@ -11,6 +11,15 @@ Tests: added FastAPI middleware coverage for default route behavior, included
 and excluded paths, exclusion precedence, non-matching route passthrough, and
 configured path normalization.
 
+FastAPI method filtering: added `include_methods` and `exclude_methods` options
+to control which HTTP methods are processed by the privacy middleware. Method
+names are normalized to uppercase, exclusions take precedence, and filtering
+runs before JSON detection, body reading, and body-size validation.
+
+Tests: added FastAPI middleware coverage for default method behavior, included
+and excluded methods, exclusion precedence, method normalization, route-and-
+method composition, and body-size-limit bypass for skipped methods.
+
 FastAPI integration hardening: added a reusable FastAPI / Starlette privacy
 middleware that redacts PII from JSON request bodies before they reach route
 handlers. The middleware supports response protection headers, configurable

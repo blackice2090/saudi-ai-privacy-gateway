@@ -102,6 +102,8 @@ app.add_middleware(
     exclude_fields={"metadata"},
     include_paths={"/chat", "/messages"},
     exclude_paths={"/health", "/metrics"},
+    include_methods={"POST", "PUT"},
+    exclude_methods={"DELETE"},
 )
 ```
 
@@ -120,6 +122,10 @@ Notes:
 - `include_paths` limits middleware processing to selected exact route paths.
 - `exclude_paths` skips selected exact route paths.
 - `exclude_paths` takes precedence over `include_paths`.
+- `include_methods` limits middleware processing to selected HTTP methods.
+- `exclude_methods` skips selected HTTP methods.
+- `exclude_methods` takes precedence over `include_methods`.
+- When route and method filters are both configured, both must match.
 - Raw values are not written to audit logs unless audit configuration explicitly
   enables them.
 
@@ -169,6 +175,54 @@ In this case:
 POST /chat    -> protected
 POST /health  -> skipped because exclusions take precedence
 POST /echo    -> skipped because it is not included
+```
+
+### HTTP method filtering
+
+Use `include_methods` to process only selected HTTP methods, or
+`exclude_methods` to skip selected methods:
+
+```python
+app.add_middleware(
+    TabayyanPrivacyMiddleware,
+    include_methods={"POST", "PUT"},
+    exclude_methods={"DELETE"},
+)
+```
+
+HTTP method filtering behavior:
+
+- `include_methods=None` protects every otherwise eligible HTTP method.
+- `include_methods` limits processing to the configured methods.
+- `exclude_methods` skips the configured methods completely.
+- `exclude_methods` takes precedence when a method appears in both options.
+- Method names are normalized by trimming whitespace and converting them to
+  uppercase.
+- Values such as `"post"`, `" POST "`, and `"Post"` are treated as `"POST"`.
+- Skipped methods pass through without request-body rewriting.
+- Skipped methods do not receive `x-tabayyan-*` response headers.
+- Method filtering is evaluated before JSON detection.
+- Method filtering is evaluated before reading the request body.
+- Method filtering is evaluated before request-body size validation.
+- When route and method filters are both configured, a request must satisfy
+  both filters to be processed.
+
+For example:
+
+```python
+app.add_middleware(
+    TabayyanPrivacyMiddleware,
+    include_paths={"/chat"},
+    include_methods={"POST"},
+)
+```
+
+This produces:
+
+```text
+POST /chat  -> protected
+PUT  /chat  -> skipped because PUT is not included
+POST /echo  -> skipped because /echo is not included
 ```
 
 ## Cross-border logic (PDPL Art. 29)
