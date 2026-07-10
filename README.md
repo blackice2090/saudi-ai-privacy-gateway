@@ -18,7 +18,7 @@
 <a href="CHANGELOG.md">Changelog</a>
 </p>
 
-<sub><b>16 detectors</b> · <b>260+ tests</b> (property · golden-regression · contract · fuzz) · <b>Python 3.9–3.13</b> · <b>zero-dependency, offline core</b></sub>
+<sub><b>16 detectors</b> · <b>270+ tests</b> (property · golden-regression · contract · fuzz) · <b>Python 3.9–3.13</b> · <b>zero-dependency, offline core</b></sub>
 
 </div>
 
@@ -112,7 +112,12 @@ from fastapi import FastAPI
 from tabayyan.integrations.fastapi import TabayyanPrivacyMiddleware
 
 app = FastAPI()
-app.add_middleware(TabayyanPrivacyMiddleware, destination="https://api.openai.com")
+app.add_middleware(
+    TabayyanPrivacyMiddleware,
+    destination="https://api.openai.com",
+    include_paths={"/chat", "/messages"},
+    exclude_paths={"/health", "/metrics"},
+)
 ```
 
 ## Examples
@@ -140,10 +145,11 @@ Details in [playground/README.md](playground/README.md).
 
 ## Status
 
-Public release (v0.8.1). The pre-1.0 version numbers track development
-milestones — the CHANGELOG documents each. Expect the API to stabilise
-toward 1.0. What's covered by versioning and what's still experimental is
-spelled out in [docs/api-stability.md](docs/api-stability.md).
+Current public release: **v0.8.1**. Development toward **v0.9.0** includes
+FastAPI route filtering and additional middleware hardening. Pre-1.0 version
+numbers track development milestones, and the CHANGELOG documents each one.
+API guarantees and experimental surfaces are described in
+[docs/api-stability.md](docs/api-stability.md).
 
 ## Install
 
