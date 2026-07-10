@@ -1131,6 +1131,19 @@ Current expected state:
 Before suggesting new work, first check whether src/tabayyan/__init__.py version matches 0.8.1 and whether GitHub Actions are green.
 ```
 
+## Manual Runtime Validation
+
+Validated locally on Windows from:
+
+`C:\Users\acer32\Downloads\Tabayyan-main`
+
+### Package installation
+
+Installed the project successfully in editable mode:
+
+```text
+Successfully installed tabayyan-0.8.1
+
 ---
 
 ## 14. Final Notes
