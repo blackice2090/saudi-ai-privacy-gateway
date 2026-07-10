@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
@@ -522,6 +524,7 @@ def test_fastapi_middleware_normalizes_configured_paths() -> None:
     assert response.headers["x-tabayyan-pii-detected"] == "true"
     assert int(response.headers["x-tabayyan-redacted-count"]) >= 1
 
+
 def test_fastapi_middleware_method_filtering_defaults_to_all_methods() -> None:
     client = TestClient(create_app())
 
@@ -691,6 +694,7 @@ def test_fastapi_middleware_skipped_method_bypasses_body_size_limit() -> None:
     assert "x-tabayyan-pii-detected" not in response.headers
     assert "x-tabayyan-redacted-count" not in response.headers
 
+
 def test_fastapi_middleware_combines_path_and_method_filters() -> None:
     client = TestClient(
         create_app(
@@ -714,5 +718,67 @@ def test_fastapi_middleware_combines_path_and_method_filters() -> None:
     body = response.json()
 
     assert body["prompt"] == prompt
+    assert "x-tabayyan-pii-detected" not in response.headers
+    assert "x-tabayyan-redacted-count" not in response.headers
+
+@pytest.mark.parametrize(
+    "content_type",
+    [
+        "application/json; charset=utf-8",
+        "application/problem+json",
+        "application/vnd.api+json; charset=utf-8",
+        "Application/Merge-Patch+JSON",
+    ],
+)
+def test_fastapi_middleware_protects_supported_json_media_types(
+    content_type: str,
+) -> None:
+    client = TestClient(create_app())
+    raw_body = '{"prompt":"رقم الهوية 1158813996"}'
+
+    response = client.post(
+        "/raw",
+        content=raw_body,
+        headers={
+            "content-type": content_type,
+        },
+    )
+
+    assert response.status_code == 200
+
+    protected_body = response.json()["body"]
+
+    assert "1158813996" not in protected_body
+    assert response.headers["x-tabayyan-pii-detected"] == "true"
+    assert int(response.headers["x-tabayyan-redacted-count"]) >= 1
+
+
+@pytest.mark.parametrize(
+    "content_type",
+    [
+        "application/jsonp",
+        "text/json",
+        "application/not-json",
+        "application/xml",
+    ],
+)
+def test_fastapi_middleware_skips_unsupported_json_like_media_types(
+    content_type: str,
+) -> None:
+    client = TestClient(create_app())
+    raw_body = '{"prompt":"رقم الهوية 1158813996"}'
+
+    response = client.post(
+        "/raw",
+        content=raw_body,
+        headers={
+            "content-type": content_type,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "body": raw_body,
+    }
     assert "x-tabayyan-pii-detected" not in response.headers
     assert "x-tabayyan-redacted-count" not in response.headers

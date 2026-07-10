@@ -260,7 +260,15 @@ class TabayyanPrivacyMiddleware:
             .lower()
         )
 
-        return "application/json" in content_type
+        media_type = content_type.partition(";")[0].strip()
+
+        return (
+            media_type == "application/json"
+            or (
+                "/" in media_type
+                and media_type.endswith("+json")
+            )
+        )
 
     def _request_is_too_large_from_headers(
         self,
