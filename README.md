@@ -18,7 +18,7 @@
 <a href="CHANGELOG.md">Changelog</a>
 </p>
 
-<sub><b>16 detectors</b> · <b>240+ tests</b> (property · golden-regression · contract · fuzz) · <b>Python 3.9–3.13</b> · <b>zero-dependency, offline core</b></sub>
+<sub><b>16 detectors</b> · <b>260+ tests</b> (property · golden-regression · contract · fuzz) · <b>Python 3.9–3.13</b> · <b>zero-dependency, offline core</b></sub>
 
 </div>
 
@@ -140,7 +140,7 @@ Details in [playground/README.md](playground/README.md).
 
 ## Status
 
-Public release (v0.8.0). The pre-1.0 version numbers track development
+Public release (v0.8.1). The pre-1.0 version numbers track development
 milestones — the CHANGELOG documents each. Expect the API to stabilise
 toward 1.0. What's covered by versioning and what's still experimental is
 spelled out in [docs/api-stability.md](docs/api-stability.md).
@@ -422,7 +422,8 @@ tabayyan/
 - **v0.6** — six new Saudi entities (VAT, landline, passport, border/visa, National Address, unified 700); offset-preserving anti-evasion normalization; provider-agnostic adapter layer (OpenAI + Anthropic); NDMO data classification in the audit; password-encrypted tokenize vault; expanded precision/recall + evasion-robustness benchmarks; and security hardening (HMAC-keyed hash, block-path leak fix, timezone-aware audit timestamps).
 - **v0.7** — detector plugin system (`register_detector` + opt-in `entry_points` discovery); verification & governance: property-based tests, golden corpus + contract tests, frozen public-API + SemVer/deprecation policy; expanded threat model; scheduled fuzzing; and release-engineering docs (RELEASE, compatibility matrix, ADRs, detector guide).
 - **v0.7.1 – v0.7.2** — community-review fixes (README ID checksum + regression test, `keep_last` alias, Windows/Arabic-name docs); richer PyPI metadata.
-- **v0.8.0** *(current)* — Playground demo web UI, README UX overhaul, and the official brand identity.
+- **v0.8.0** — Playground demo web UI, README UX overhaul, and the official brand identity.
+- **v0.8.1** *(current)* — FastAPI middleware hardening, request body limits, field filtering, CI cleanup, and release polish.
 - **Toward 1.0** — the verification, API-stability, and governance foundations are in place; 1.0 is a stabilization milestone rather than a feature one.
 
 ### After 1.0
