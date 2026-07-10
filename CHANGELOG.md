@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+
+FastAPI route filtering: added `include_paths` and `exclude_paths` options to
+control which exact application routes are processed by the privacy middleware.
+Excluded paths take precedence, configured paths are normalized, and skipped
+routes pass through without body rewriting or Tabayyan response headers.
+
+Tests: added FastAPI middleware coverage for default route behavior, included
+and excluded paths, exclusion precedence, non-matching route passthrough, and
+configured path normalization.
+
 FastAPI integration hardening: added a reusable FastAPI / Starlette privacy
 middleware that redacts PII from JSON request bodies before they reach route
 handlers. The middleware supports response protection headers, configurable

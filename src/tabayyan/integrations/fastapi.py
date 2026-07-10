@@ -35,6 +35,10 @@ class TabayyanPrivacyMiddleware:
     The middleware is designed for FastAPI and Starlette applications. It keeps
     the core Tabayyan package local-first and provider-agnostic while making it
     easy to protect prompts before they reach application routes or LLM clients.
+
+    Request processing can be limited to exact route paths with ``include_paths``
+    or skipped for selected paths with ``exclude_paths``. Exclusions take
+    precedence when a path appears in both collections.
     """
 
     def __init__(
@@ -49,9 +53,13 @@ class TabayyanPrivacyMiddleware:
         max_body_size: int | None = DEFAULT_MAX_BODY_SIZE,
         include_fields: Collection[str] | None = None,
         exclude_fields: Collection[str] | None = None,
+        include_paths: Collection[str] | None = None,
+        exclude_paths: Collection[str] | None = None,
     ) -> None:
         if max_body_size is not None and max_body_size < 0:
-            raise ValueError("max_body_size must be a non-negative integer or None")
+            raise ValueError(
+                "max_body_size must be a non-negative integer or None"
+            )
 
         self._app = app
         self._destination = destination
@@ -59,6 +67,8 @@ class TabayyanPrivacyMiddleware:
         self._max_body_size = max_body_size
         self._include_fields = self._normalize_fields(include_fields)
         self._exclude_fields = self._normalize_fields(exclude_fields)
+        self._include_paths = self._normalize_paths(include_paths)
+        self._exclude_paths = self._normalize_paths(exclude_paths)
 
         audit = AuditLog(path=audit_path) if audit_path else None
         self._guard = Guard(
@@ -67,8 +77,17 @@ class TabayyanPrivacyMiddleware:
             block_cross_border=block_cross_border,
         )
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
         if scope["type"] != "http":
+            await self._app(scope, receive, send)
+            return
+
+        if not self._should_protect_path(scope):
             await self._app(scope, receive, send)
             return
 
@@ -88,7 +107,10 @@ class TabayyanPrivacyMiddleware:
 
         protected_body, stats = self._protect_body(body)
 
-        protected_scope = self._with_content_length(scope, len(protected_body))
+        protected_scope = self._with_content_length(
+            scope,
+            len(protected_body),
+        )
 
         async def protected_receive() -> Message:
             return {
@@ -119,21 +141,87 @@ class TabayyanPrivacyMiddleware:
 
             await send(message)
 
-        await self._app(protected_scope, protected_receive, protected_send)
+        await self._app(
+            protected_scope,
+            protected_receive,
+            protected_send,
+        )
+
+    def _should_protect_path(self, scope: Scope) -> bool:
+        path = self._normalize_path(str(scope.get("path", "/")))
+
+        if self._path_is_excluded(path):
+            return False
+
+        if self._include_paths is None:
+            return True
+
+        return self._path_is_included(path)
+
+    def _path_is_included(self, path: str) -> bool:
+        if self._include_paths is None:
+            return False
+
+        return self._normalize_path(path) in self._include_paths
+
+    def _path_is_excluded(self, path: str) -> bool:
+        if self._exclude_paths is None:
+            return False
+
+        return self._normalize_path(path) in self._exclude_paths
+
+    def _normalize_paths(
+        self,
+        paths: Collection[str] | None,
+    ) -> set[str] | None:
+        if paths is None:
+            return None
+
+        if isinstance(paths, str):
+            return {self._normalize_path(paths)}
+
+        return {
+            self._normalize_path(path)
+            for path in paths
+        }
+
+    def _normalize_path(self, path: str) -> str:
+        normalized = str(path).strip()
+
+        if not normalized:
+            return "/"
+
+        if not normalized.startswith("/"):
+            normalized = f"/{normalized}"
+
+        if normalized != "/":
+            normalized = normalized.rstrip("/")
+
+        return normalized or "/"
 
     def _is_json_request(self, scope: Scope) -> bool:
         headers = self._headers(scope)
-        content_type = headers.get(b"content-type", b"").decode("latin-1").lower()
+        content_type = (
+            headers.get(b"content-type", b"")
+            .decode("latin-1")
+            .lower()
+        )
 
         return "application/json" in content_type
 
-    def _request_is_too_large_from_headers(self, scope: Scope) -> bool:
+    def _request_is_too_large_from_headers(
+        self,
+        scope: Scope,
+    ) -> bool:
         if self._max_body_size is None:
             return False
 
         content_length = self._content_length(scope)
 
-        return content_length is not None and content_length > self._max_body_size
+        return (
+            content_length is not None
+            and content_length > self._max_body_size
+        )
 
     def _content_length(self, scope: Scope) -> int | None:
         headers = self._headers(scope)
@@ -147,7 +235,10 @@ class TabayyanPrivacyMiddleware:
         except ValueError:
             return None
 
-    def _protect_body(self, body: bytes) -> tuple[bytes, RequestProtectionStats]:
+    def _protect_body(
+        self,
+        body: bytes,
+    ) -> tuple[bytes, RequestProtectionStats]:
         if not body:
             return body, RequestProtectionStats(
                 pii_detected=False,
@@ -183,7 +274,10 @@ class TabayyanPrivacyMiddleware:
         force_protect: bool = False,
     ) -> tuple[Any, int]:
         if isinstance(value, str):
-            if not self._should_protect_field(field_name, force_protect):
+            if not self._should_protect_field(
+                field_name,
+                force_protect,
+            ):
                 return value, 0
 
             protected = self._guard.protect(
@@ -223,7 +317,8 @@ class TabayyanPrivacyMiddleware:
                     item,
                     field_name=key_name,
                     force_protect=(
-                        force_protect or self._field_is_included(key_name)
+                        force_protect
+                        or self._field_is_included(key_name)
                     ),
                 )
                 protected_dict[key_name] = protected_item
@@ -249,17 +344,29 @@ class TabayyanPrivacyMiddleware:
 
         return self._field_is_included(field_name)
 
-    def _field_is_included(self, field_name: str | None) -> bool:
+    def _field_is_included(
+        self,
+        field_name: str | None,
+    ) -> bool:
         if self._include_fields is None or field_name is None:
             return False
 
-        return self._normalize_field(field_name) in self._include_fields
+        return (
+            self._normalize_field(field_name)
+            in self._include_fields
+        )
 
-    def _field_is_excluded(self, field_name: str | None) -> bool:
+    def _field_is_excluded(
+        self,
+        field_name: str | None,
+    ) -> bool:
         if self._exclude_fields is None or field_name is None:
             return False
 
-        return self._normalize_field(field_name) in self._exclude_fields
+        return (
+            self._normalize_field(field_name)
+            in self._exclude_fields
+        )
 
     def _normalize_fields(
         self,
@@ -305,7 +412,10 @@ class TabayyanPrivacyMiddleware:
 
         return b"".join(chunks)
 
-    async def _send_payload_too_large(self, send: Send) -> None:
+    async def _send_payload_too_large(
+        self,
+        send: Send,
+    ) -> None:
         body = b'{"detail":"Request body too large"}'
 
         await send(
@@ -313,11 +423,18 @@ class TabayyanPrivacyMiddleware:
                 "type": "http.response.start",
                 "status": 413,
                 "headers": [
-                    (b"content-type", b"application/json"),
-                    (b"content-length", str(len(body)).encode("utf-8")),
+                    (
+                        b"content-type",
+                        b"application/json",
+                    ),
+                    (
+                        b"content-length",
+                        str(len(body)).encode("utf-8"),
+                    ),
                 ],
             }
         )
+
         await send(
             {
                 "type": "http.response.body",
@@ -326,19 +443,32 @@ class TabayyanPrivacyMiddleware:
             }
         )
 
-    def _headers(self, scope: Scope) -> Mapping[bytes, bytes]:
+    def _headers(
+        self,
+        scope: Scope,
+    ) -> Mapping[bytes, bytes]:
         return {
             key.lower(): value
             for key, value in scope.get("headers", [])
         }
 
-    def _with_content_length(self, scope: Scope, body_length: int) -> Scope:
+    def _with_content_length(
+        self,
+        scope: Scope,
+        body_length: int,
+    ) -> Scope:
         headers = [
             (key, value)
             for key, value in scope.get("headers", [])
             if key.lower() != b"content-length"
         ]
-        headers.append((b"content-length", str(body_length).encode("utf-8")))
+
+        headers.append(
+            (
+                b"content-length",
+                str(body_length).encode("utf-8"),
+            )
+        )
 
         return {
             **scope,
