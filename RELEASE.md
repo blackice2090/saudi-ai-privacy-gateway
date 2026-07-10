@@ -44,7 +44,7 @@ Static type checking (mypy) is **not yet enforced** — see the post-1.0 roadmap
 
 ## 4. Post-release
 
-- Verify the new version on <https://pypi.org/project/tabayyan/> and that
+- Verify the new version on <https://pypi.org/project/tabayyan-privacy/> and that
   `pip install tabayyan==X.Y.Z` resolves.
 - Confirm the GitHub Release notes render and link the CHANGELOG.
 
