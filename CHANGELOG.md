@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1
+
+Packaging: changed the PyPI distribution name to `tabayyan-privacy` because
+the `tabayyan` project name is already registered on PyPI. The Python import
+namespace remains unchanged as `tabayyan`.
+
 ## 0.9.0
 
 FastAPI route filtering: added `include_paths` and `exclude_paths` options to
