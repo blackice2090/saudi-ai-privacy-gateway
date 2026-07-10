@@ -11,8 +11,8 @@ designed. It is a regression and sanity signal, not a claim about
 real-world traffic. The value is in the hard negatives and the naive
 baseline comparison.
 
-Run:  python benchmarks/run.py            # prints tables
-      python benchmarks/run.py --write    # also writes benchmarks/RESULTS.md
+Run:  python -m benchmarks.run            # prints tables
+      python -m benchmarks.run --write    # also writes benchmarks/RESULTS.md
 """
 from __future__ import annotations
 

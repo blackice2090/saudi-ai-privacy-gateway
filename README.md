@@ -18,7 +18,7 @@
 <a href="CHANGELOG.md">Changelog</a>
 </p>
 
-<sub><b>16 detectors</b> · <b>270+ tests</b> (property · golden-regression · contract · fuzz) · <b>Python 3.9–3.13</b> · <b>zero-dependency, offline core</b></sub>
+<sub><b>16 detectors</b> · <b>280+ tests</b> (property · golden-regression · contract · fuzz) · <b>Python 3.9–3.13</b> · <b>zero-dependency, offline core</b></sub>
 
 </div>
 
@@ -146,9 +146,11 @@ Details in [playground/README.md](playground/README.md).
 
 ## Status
 
-Current public release: **v0.8.1**. Development toward **v0.9.0** includes
-FastAPI route filtering and additional middleware hardening. Pre-1.0 version
-numbers track development milestones, and the CHANGELOG documents each one.
+Current public release: **v0.9.0**. This release adds reusable FastAPI /
+Starlette middleware with route, method, and field filtering, request-body
+limits, structured `+json` media-type support, and expanded integration tests.
+Pre-1.0 version numbers track development milestones, and the CHANGELOG
+documents each one.
 API guarantees and experimental surfaces are described in
 [docs/api-stability.md](docs/api-stability.md).
 

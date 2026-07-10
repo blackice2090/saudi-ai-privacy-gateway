@@ -17,7 +17,7 @@ pytest -q                         # full suite — includes:
                                   #   contract tests    (tests/test_contracts.py)
                                   #   public-API freeze (tests/test_public_api.py)
                                   #   fuzz smoke        (tests/test_fuzz_smoke.py)
-python benchmarks/run.py          # sanity-check precision/recall + evasion tables
+python -m benchmarks.run          # sanity-check precision/recall + evasion tables
 
 python -m build                   # wheel + sdist into dist/
 pip install twine && twine check dist/*   # metadata/rendering validation
