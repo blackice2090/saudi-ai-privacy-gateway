@@ -1,11 +1,11 @@
 <div align="center">
 
 <img src="docs/assets/brand/tabayyan-lockup.svg" alt="Tabayyan — Saudi-first PII detection &amp; redaction for LLM pipelines" width="540">
-[![Tests](https://github.com/blackice2090/saudi-ai-privacy-gateway/actions/workflows/tests.yml/badge.svg)](https://github.com/blackice2090/saudi-ai-privacy-gateway/actions/workflows/tests.yml)
+
 <p>
 <a href="https://pypi.org/project/tabayyan/"><img src="https://img.shields.io/pypi/v/tabayyan.svg" alt="PyPI"></a>
 <a href="https://pypi.org/project/tabayyan/"><img src="https://img.shields.io/pypi/pyversions/tabayyan.svg" alt="Python"></a>
-<a href="https://github.com/nasser-gh/tabayyan/actions"><img src="https://github.com/nasser-gh/tabayyan/actions/workflows/tests.yml/badge.svg" alt="tests"></a>
+<a href="https://github.com/blackice2090/saudi-ai-privacy-gateway/actions/workflows/tests.yml"><img src="https://github.com/blackice2090/saudi-ai-privacy-gateway/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache-2.0"></a>
 </p>
 
