@@ -14,6 +14,8 @@ def create_app(
     exclude_fields: set[str] | None = None,
     include_paths: set[str] | None = None,
     exclude_paths: set[str] | None = None,
+    include_methods: set[str] | None = None,
+    exclude_methods: set[str] | None = None,
 ) -> FastAPI:
     app = FastAPI()
 
@@ -26,6 +28,8 @@ def create_app(
         exclude_fields=exclude_fields,
         include_paths=include_paths,
         exclude_paths=exclude_paths,
+        include_methods=include_methods,
+        exclude_methods=exclude_methods,
     )
 
     @app.post("/echo")
@@ -34,6 +38,15 @@ def create_app(
     @app.post("/health")
     @app.post("/metrics")
     def echo(payload: dict[str, object]) -> dict[str, object]:
+        return payload
+
+    @app.api_route(
+        "/method-echo",
+        methods=["GET", "POST", "PUT", "DELETE"],
+    )
+    def method_echo(
+        payload: dict[str, object],
+    ) -> dict[str, object]:
         return payload
 
     @app.post("/raw")
@@ -508,3 +521,198 @@ def test_fastapi_middleware_normalizes_configured_paths() -> None:
     assert "1158813996" not in body["prompt"]
     assert response.headers["x-tabayyan-pii-detected"] == "true"
     assert int(response.headers["x-tabayyan-redacted-count"]) >= 1
+
+def test_fastapi_middleware_method_filtering_defaults_to_all_methods() -> None:
+    client = TestClient(create_app())
+
+    response = client.request(
+        "PUT",
+        "/method-echo",
+        json={
+            "prompt": "رقم الهوية 1158813996",
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert "1158813996" not in body["prompt"]
+    assert response.headers["x-tabayyan-pii-detected"] == "true"
+    assert int(response.headers["x-tabayyan-redacted-count"]) >= 1
+
+
+def test_fastapi_middleware_include_methods_protects_matching_method() -> None:
+    client = TestClient(
+        create_app(
+            include_methods={"POST"},
+        )
+    )
+
+    response = client.request(
+        "POST",
+        "/method-echo",
+        json={
+            "prompt": "رقم الهوية 1158813996",
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert "1158813996" not in body["prompt"]
+    assert response.headers["x-tabayyan-pii-detected"] == "true"
+    assert int(response.headers["x-tabayyan-redacted-count"]) >= 1
+
+
+def test_fastapi_middleware_include_methods_skips_non_matching_method() -> None:
+    client = TestClient(
+        create_app(
+            include_methods={"POST"},
+        )
+    )
+
+    response = client.request(
+        "PUT",
+        "/method-echo",
+        json={
+            "prompt": "رقم الهوية 1158813996",
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["prompt"] == "رقم الهوية 1158813996"
+    assert "x-tabayyan-pii-detected" not in response.headers
+    assert "x-tabayyan-redacted-count" not in response.headers
+
+
+def test_fastapi_middleware_exclude_methods_skips_selected_method() -> None:
+    client = TestClient(
+        create_app(
+            exclude_methods={"DELETE"},
+        )
+    )
+
+    response = client.request(
+        "DELETE",
+        "/method-echo",
+        json={
+            "prompt": "رقم الهوية 1158813996",
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["prompt"] == "رقم الهوية 1158813996"
+    assert "x-tabayyan-pii-detected" not in response.headers
+    assert "x-tabayyan-redacted-count" not in response.headers
+
+
+def test_fastapi_middleware_exclude_methods_wins_over_include_methods() -> None:
+    client = TestClient(
+        create_app(
+            include_methods={"POST"},
+            exclude_methods={"POST"},
+        )
+    )
+
+    response = client.request(
+        "POST",
+        "/method-echo",
+        json={
+            "prompt": "رقم الهوية 1158813996",
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["prompt"] == "رقم الهوية 1158813996"
+    assert "x-tabayyan-pii-detected" not in response.headers
+    assert "x-tabayyan-redacted-count" not in response.headers
+
+
+def test_fastapi_middleware_normalizes_configured_methods() -> None:
+    client = TestClient(
+        create_app(
+            include_methods={
+                " post ",
+            },
+        )
+    )
+
+    response = client.request(
+        "POST",
+        "/method-echo",
+        json={
+            "prompt": "رقم الهوية 1158813996",
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert "1158813996" not in body["prompt"]
+    assert response.headers["x-tabayyan-pii-detected"] == "true"
+    assert int(response.headers["x-tabayyan-redacted-count"]) >= 1
+
+
+def test_fastapi_middleware_skipped_method_bypasses_body_size_limit() -> None:
+    client = TestClient(
+        create_app(
+            include_methods={"POST"},
+            max_body_size=16,
+        )
+    )
+
+    prompt = "رقم الهوية 1158813996 " + ("x" * 100)
+
+    response = client.request(
+        "PUT",
+        "/method-echo",
+        json={
+            "prompt": prompt,
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["prompt"] == prompt
+    assert "x-tabayyan-pii-detected" not in response.headers
+    assert "x-tabayyan-redacted-count" not in response.headers
+
+def test_fastapi_middleware_combines_path_and_method_filters() -> None:
+    client = TestClient(
+        create_app(
+            include_paths={"/method-echo"},
+            include_methods={"POST"},
+        )
+    )
+
+    prompt = "رقم الهوية 1158813996"
+
+    response = client.request(
+        "PUT",
+        "/method-echo",
+        json={
+            "prompt": prompt,
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["prompt"] == prompt
+    assert "x-tabayyan-pii-detected" not in response.headers
+    assert "x-tabayyan-redacted-count" not in response.headers

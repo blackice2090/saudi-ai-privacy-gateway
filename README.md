@@ -117,6 +117,7 @@ app.add_middleware(
     destination="https://api.openai.com",
     include_paths={"/chat", "/messages"},
     exclude_paths={"/health", "/metrics"},
+    include_methods={"POST"},
 )
 ```
 
