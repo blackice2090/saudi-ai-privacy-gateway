@@ -41,7 +41,38 @@ CI: added a GitHub Actions workflow that runs Ruff and Pytest on Python
   (`#0f766e`→`#0e7490`, ink `#0f172a`), type (Sora / Noto Kufi Arabic), and
   usage. Committed SVGs use a system-sans fallback so they render without web
   fonts.
+Changelog
 
+Unreleased
+
+## 0.8.1
+
+FastAPI integration hardening: added a reusable FastAPI / Starlette privacy
+middleware that redacts PII from JSON request bodies before they reach route
+handlers. The middleware supports response protection headers, configurable
+request body limits, and optional field-level filtering.
+
+FastAPI middleware configuration: added `max_body_size` with a default
+1,000,000-byte limit; oversized JSON requests return `413 Payload Too Large`.
+The limit can be disabled with `max_body_size=None`.
+
+FastAPI field filtering: added `include_fields` and `exclude_fields` options
+to target specific JSON fields such as `prompt`, `messages`, and `content`,
+or skip subtrees such as `metadata`. When both are configured,
+`exclude_fields` takes precedence.
+
+Examples: added a FastAPI LLM guard example under
+`examples/fastapi_llm_guard`, including a runnable app, schemas, services,
+sample requests, and tests.
+
+Tests: expanded FastAPI middleware coverage for nested JSON, list payloads,
+non-JSON passthrough, invalid JSON, empty bodies, disabled response headers,
+oversized JSON rejection, disabled body limits, and field filtering behavior.
+
+CI: added a GitHub Actions workflow that runs Ruff and Pytest on Python
+3.10, 3.11, and 3.12. Added a README CI status badge.
+
+## 0.8.0
 ## 0.8.0
 - **Playground (demo web UI):** a new `playground/` FastAPI app — a lightweight,
   fully-offline demo that lets anyone try Tabayyan in the browser (highlighted
