@@ -20,6 +20,17 @@ Tests: added FastAPI middleware coverage for default method behavior, included
 and excluded methods, exclusion precedence, method normalization, route-and-
 method composition, and body-size-limit bypass for skipped methods.
 
+FastAPI JSON media types: expanded request detection to support
+`application/json` and structured `+json` media types such as
+`application/problem+json`, `application/vnd.api+json`, and
+`application/merge-patch+json`. Media type matching is case-insensitive,
+parameters are ignored, and unsupported lookalikes such as `application/jsonp`
+and `text/json` pass through unchanged.
+
+Tests: added parameterized FastAPI middleware coverage for supported JSON media
+types, content-type parameters, case normalization, and unsupported JSON-like
+media types.
+
 FastAPI integration hardening: added a reusable FastAPI / Starlette privacy
 middleware that redacts PII from JSON request bodies before they reach route
 handlers. The middleware supports response protection headers, configurable

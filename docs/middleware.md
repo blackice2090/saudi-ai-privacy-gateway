@@ -109,8 +109,9 @@ app.add_middleware(
 
 Notes:
 
-- Only JSON request bodies are modified.
-- Non-JSON requests pass through unchanged.
+- JSON request bodies using `application/json` or a structured `+json`
+  media type are modified.
+- Non-JSON and unsupported JSON-like media types pass through unchanged.
 - The middleware does not call any external service.
 - `max_body_size` defaults to `1_000_000` bytes.
 - JSON requests larger than the configured limit return `413 Payload Too Large`.
@@ -128,6 +129,34 @@ Notes:
 - When route and method filters are both configured, both must match.
 - Raw values are not written to audit logs unless audit configuration explicitly
   enables them.
+
+### JSON media types
+
+The middleware processes requests whose `Content-Type` is either:
+
+- `application/json`
+- A media type ending with the structured syntax suffix `+json`
+
+Supported examples include:
+
+```text
+application/json
+application/json; charset=utf-8
+application/problem+json
+application/vnd.api+json
+application/merge-patch+json
+```
+
+Media type matching is case-insensitive, and parameters such as `charset` are
+ignored when determining whether the request contains JSON.
+
+JSON-like but unsupported media types pass through unchanged, including:
+
+```text
+application/jsonp
+text/json
+application/not-json
+```
 
 ### Route filtering
 
