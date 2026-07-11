@@ -33,6 +33,7 @@ dependency (`cryptography`), which ships wheels for all three platforms.
 | _(core)_ | — | — | detection, redaction, middleware — **zero runtime deps** |
 | `crypto` | `cryptography` | `>=42` | encrypted tokenize vault (`tabayyan.vault`) |
 | `presidio` | `presidio-analyzer` | `>=2.2` | Saudi recognizers inside Microsoft Presidio |
+| `fastapi` | `fastapi` | `>=0.110` | `TabayyanPrivacyMiddleware` for FastAPI / Starlette apps |
 | `docs` | `mkdocs-material` | `>=9` | building the documentation site |
 | `dev` | pytest, ruff, build, hypothesis, cryptography, python-stdnum | see `pyproject.toml` | tests, lint, build |
 

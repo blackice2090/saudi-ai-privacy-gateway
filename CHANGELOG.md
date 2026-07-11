@@ -1,5 +1,52 @@
 # Changelog
 
+## Unreleased
+
+Security & privacy fixes from the 0.9.1 comprehensive code review
+(tracking: issue #26). Middleware failure behavior changes are observable;
+the next release should be a **minor** version (0.10.0).
+
+- **Redaction:** `partial` mode now fully masks values no longer than
+  `keep_last` instead of returning them unchanged (previously a short value —
+  e.g. a 4-char MRN under the default `keep_last=4` — passed through raw).
+  Tokenize skips token strings already present in the input so `restore()`
+  can never rewrite user-authored token-lookalike text.
+- **FastAPI middleware:** malformed or pathologically deep JSON on a
+  protected route now returns `400` (fail closed) instead of passing through
+  unscanned with `pii-detected: false`; `block_cross_border=True` returns a
+  non-leaking `403` and no longer forwards "blocked" requests; new `salt`
+  parameter with construction-time HASH validation; `TOKENIZE` is rejected
+  (no vault channel) instead of silently discarding the vault; the request
+  body is delivered once and `http.disconnect` propagates (no infinite
+  replay, no truncated bodies); clean bodies are forwarded byte-identical.
+- **Audit:** local destinations (`local`, `localhost`, loopback IPs, none)
+  are no longer recorded as cross-border transfers; new `destination_scope`
+  audit field; audit files are created `0600` where POSIX modes apply, with
+  in-process write locking (one writer per file across processes).
+- **CLI:** exit code contract enforced — `0` clean, `1` findings with
+  `--fail-on-find`, `2` input/usage/I/O error (missing paths no longer exit
+  0); empty directory scans warn; broken pipes exit quietly; new
+  `--salt-file` and `TABAYYAN_SALT` hash-key sources.
+- **Providers:** unrecognized message shapes (typed SDK objects) now emit
+  `UnscannedContentWarning` (configurable `Guard(on_unrecognized=
+  "warn"|"error"|"pass")`) instead of silently passing unscanned; OpenAI
+  `tool_calls`/`function_call` arguments, Anthropic `tool_use` input and
+  `tool_result` content are now redacted.
+- **Streaming:** `scan_file` preserves every `Match` field (custom-detector
+  labels were dropped).
+- **Config & plugins:** malformed `custom_detectors` entries raise
+  `ValueError` naming the entry and field; unknown keys and ineffective
+  `disable` names warn; config confusables no longer merge into the global
+  map implicitly (explicit `Config.apply_confusables()`; CLI unchanged);
+  `discover_plugins()` is idempotent and isolates individual plugin failures.
+- **Packaging:** runtime install hints and all docs use `tabayyan-privacy`;
+  README migration note for the rename; explicit sdist manifest (local
+  builds no longer sweep in untracked files); `py.typed` shipped.
+- **Docs:** corrected benchmark commands (`python -m benchmarks.run`),
+  roadmap versions, CLI exit-code documentation; refreshed Arabic README;
+  FastAPI middleware assigned an API-stability tier (Experimental);
+  compatibility matrix lists the `fastapi` extra; ADRs added to docs nav.
+
 ## 0.9.1
 
 Packaging: changed the PyPI distribution name to `tabayyan-privacy` because

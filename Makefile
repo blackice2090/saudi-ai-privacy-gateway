@@ -10,7 +10,7 @@ lint:
 	ruff check .
 
 bench:
-	python benchmarks/run.py --write
+	python -m benchmarks.run --write
 
 build:
 	python -m build

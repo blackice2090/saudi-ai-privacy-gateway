@@ -66,6 +66,9 @@ note) without waiting for a MAJOR bump:
 
 - the provider-adapter wire details — the `Guard.wrap` proxy shape and the
   `ProviderAdapter` protocol method signatures;
+- the FastAPI / Starlette request middleware —
+  `tabayyan.integrations.fastapi.TabayyanPrivacyMiddleware` and its
+  constructor options and HTTP failure behavior (400/403/413 responses);
 - the normalization API — `tabayyan.normalize.normalize()` and the `Normalized`
   offset-mapping object;
 - the NDMO default mapping `tabayyan.ndmo.CATEGORY_CLASSIFICATION` (levels may

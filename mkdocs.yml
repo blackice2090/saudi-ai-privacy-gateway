@@ -23,5 +23,12 @@ nav:
   - API stability: api-stability.md
   - Brand: brand.md
   - Compatibility: compatibility.md
-  - Architecture decisions: adr/README.md
+  - Architecture decisions:
+      - Overview: adr/README.md
+      - 0001 Normalize before detect: adr/0001-normalize-before-detect.md
+      - 0002 Single package: adr/0002-single-package.md
+      - 0003 Opt-in plugin discovery: adr/0003-opt-in-plugin-discovery.md
+      - 0004 API stability strategy: adr/0004-api-stability-strategy.md
+      - 0005 Unicode normalization philosophy: adr/0005-unicode-normalization-philosophy.md
+      - 0006 Detector/validator separation: adr/0006-detector-validator-separation.md
   - References: REFERENCES.md
