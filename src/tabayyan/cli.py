@@ -5,13 +5,19 @@ Commands:
   tabayyan redact  [paths...]  detect + redact, print sanitised text
 
 Reads stdin when no path is given or path is '-'. Supports batch over
-files and directories. Exit code is non-zero when entities are found,
-so it slots into CI / pre-commit gates.
+files and directories.
+
+Exit codes:
+  0  clean run (or findings without --fail-on-find)
+  1  entities found and --fail-on-find was given (CI / pre-commit gates)
+  2  input, usage, or I/O error (missing/unreadable path, bad salt source,
+     broken pipe, ...)
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -28,8 +34,13 @@ _CONFIDENCE_ORDER = {Confidence.LOW: 0, Confidence.MEDIUM: 1, Confidence.HIGH: 2
 _TEXT_SUFFIXES = {".txt", ".md", ".log", ".json", ".csv", ".eml", ".text"}
 
 
-def _iter_inputs(paths: list[str]) -> Iterable[tuple[str, str]]:
-    """Yield (source_name, text). '-' or empty -> stdin."""
+def _iter_inputs(paths: list[str], errors: list[str]) -> Iterable[tuple[str, str]]:
+    """Yield (source_name, text). '-' or empty -> stdin.
+
+    Unreadable or missing paths are reported on stderr and recorded in
+    `errors` so callers can exit non-zero: a gate that silently scans
+    nothing must not look like a clean pass.
+    """
     if not paths or paths == ["-"]:
         yield ("<stdin>", sys.stdin.read())
         return
@@ -39,12 +50,30 @@ def _iter_inputs(paths: list[str]) -> Iterable[tuple[str, str]]:
             continue
         p = Path(raw)
         if p.is_dir():
+            matched_any = False
             for child in sorted(p.rglob("*")):
                 if child.is_file() and child.suffix.lower() in _TEXT_SUFFIXES:
-                    yield (str(child), child.read_text(encoding="utf-8", errors="replace"))
+                    matched_any = True
+                    try:
+                        yield (str(child), child.read_text(encoding="utf-8", errors="replace"))
+                    except OSError as exc:
+                        errors.append(str(child))
+                        print(f"tabayyan: cannot read '{child}': {exc}", file=sys.stderr)
+            if not matched_any:
+                suffixes = " ".join(sorted(_TEXT_SUFFIXES))
+                print(
+                    f"tabayyan: warning: no scannable text files under '{raw}' "
+                    f"(recognised suffixes: {suffixes})",
+                    file=sys.stderr,
+                )
         elif p.is_file():
-            yield (str(p), p.read_text(encoding="utf-8", errors="replace"))
+            try:
+                yield (str(p), p.read_text(encoding="utf-8", errors="replace"))
+            except OSError as exc:
+                errors.append(raw)
+                print(f"tabayyan: cannot read '{raw}': {exc}", file=sys.stderr)
         else:
+            errors.append(raw)
             print(f"tabayyan: cannot read '{raw}'", file=sys.stderr)
 
 
@@ -67,16 +96,28 @@ def _filter_matches(matches: list[Match], args) -> list[Match]:
     return out
 
 
+def _exit_code(found_any: bool, errors: list[str], fail_on_find: bool) -> int:
+    if errors:
+        return 2
+    return 1 if (found_any and fail_on_find) else 0
+
+
 def _cmd_scan(args) -> int:
     engine = _engine_from_args(args)
     found_any = False
+    errors: list[str] = []
     report = []
     if args.stream:
+        if not args.paths or any(raw in ("", "-") for raw in args.paths):
+            print("tabayyan: --stream requires file paths, not stdin", file=sys.stderr)
+            return 2
         for raw in args.paths:
-            if raw in ("", "-"):
-                print("tabayyan: --stream requires file paths, not stdin", file=sys.stderr)
+            try:
+                matches = _filter_matches(list(scan_file(raw, engine)), args)
+            except OSError as exc:
+                errors.append(raw)
+                print(f"tabayyan: cannot read '{raw}': {exc}", file=sys.stderr)
                 continue
-            matches = _filter_matches(list(scan_file(raw, engine)), args)
             if matches:
                 found_any = True
             if args.json:
@@ -89,8 +130,8 @@ def _cmd_scan(args) -> int:
         if args.json:
             json.dump(report, sys.stdout, ensure_ascii=False, indent=2)
             sys.stdout.write("\n")
-        return (1 if found_any else 0) if args.fail_on_find else 0
-    for name, text in _iter_inputs(args.paths):
+        return _exit_code(found_any, errors, args.fail_on_find)
+    for name, text in _iter_inputs(args.paths, errors):
         matches = _filter_matches(engine.scan(text), args)
         if matches:
             found_any = True
@@ -104,21 +145,44 @@ def _cmd_scan(args) -> int:
     if args.json:
         json.dump(report, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
-    return (1 if found_any else 0) if args.fail_on_find else 0
+    return _exit_code(found_any, errors, args.fail_on_find)
+
+
+def _resolve_salt(args) -> str | None:
+    """HMAC key for hash mode: --salt, then --salt-file, then TABAYYAN_SALT.
+
+    A file or environment variable keeps the key out of shell history and
+    process listings. Returns None when a given salt file cannot be read.
+    """
+    if args.salt:
+        return args.salt
+    if args.salt_file:
+        try:
+            return Path(args.salt_file).read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            print(f"tabayyan: cannot read salt file '{args.salt_file}': {exc}",
+                  file=sys.stderr)
+            return None
+    return os.environ.get("TABAYYAN_SALT", "")
 
 
 def _cmd_redact(args) -> int:
     engine = _engine_from_args(args)
     mode = RedactionMode(args.mode)
-    if mode is RedactionMode.HASH and not args.salt:
+    salt = _resolve_salt(args)
+    if salt is None:
+        return 2
+    if mode is RedactionMode.HASH and not salt:
         print(
-            "error: --mode hash requires a non-empty --salt (used as the HMAC key); "
+            "error: --mode hash requires a non-empty HMAC key via --salt, "
+            "--salt-file, or the TABAYYAN_SALT environment variable; "
             "an empty key leaves short identifiers reversible by brute force.",
             file=sys.stderr,
         )
         return 2
     found_any = False
-    inputs = list(_iter_inputs(args.paths))
+    errors: list[str] = []
+    inputs = list(_iter_inputs(args.paths, errors))
     multi = len(inputs) > 1
     for name, text in inputs:
         matches = _filter_matches(engine.scan(text), args)
@@ -126,7 +190,7 @@ def _cmd_redact(args) -> int:
             found_any = True
         result = redact(
             text, matches, mode,
-            salt=args.salt, hash_length=args.hash_length,
+            salt=salt, hash_length=args.hash_length,
             partial_keep_last=args.keep_last,
         )
         if args.json:
@@ -143,7 +207,7 @@ def _cmd_redact(args) -> int:
             if result.vault:
                 print(f"# vault ({len(result.vault)} tokens) — store securely; "
                       f"use --json to capture", file=sys.stderr)
-    return (1 if found_any else 0) if args.fail_on_find else 0
+    return _exit_code(found_any, errors, args.fail_on_find)
 
 
 def _load_watchlist(path: str | None) -> list[str]:
@@ -154,10 +218,16 @@ def _load_watchlist(path: str | None) -> list[str]:
 
 
 def _cmd_domains(args) -> int:
-    watchlist = _load_watchlist(args.watchlist)
+    try:
+        watchlist = _load_watchlist(args.watchlist)
+    except OSError as exc:
+        print(f"tabayyan: cannot read watchlist '{args.watchlist}': {exc}",
+              file=sys.stderr)
+        return 2
     found_any = False
+    errors: list[str] = []
     report = []
-    for name, text in _iter_inputs(args.paths):
+    for name, text in _iter_inputs(args.paths, errors):
         findings = _scan_domains(text, watchlist,
                                  typosquat_max_distance=args.max_distance)
         if findings:
@@ -172,7 +242,7 @@ def _cmd_domains(args) -> int:
     if args.json:
         json.dump(report, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
-    return (1 if found_any else 0) if args.fail_on_find else 0
+    return _exit_code(found_any, errors, args.fail_on_find)
 
 
 def _add_common_filters(p: argparse.ArgumentParser) -> None:
@@ -202,7 +272,12 @@ def build_parser() -> argparse.ArgumentParser:
     pr = sub.add_parser("redact", help="detect and redact")
     _add_common_filters(pr)
     pr.add_argument("--mode", choices=[m.value for m in RedactionMode], default="mask")
-    pr.add_argument("--salt", default="", help="HMAC key for hash mode (required, non-empty)")
+    pr.add_argument("--salt", default="",
+                    help="HMAC key for hash mode; prefer --salt-file or the "
+                         "TABAYYAN_SALT env var to keep it out of shell history")
+    pr.add_argument("--salt-file",
+                    help="file containing the HMAC key for hash mode "
+                         "(trailing whitespace stripped)")
     pr.add_argument("--hash-length", type=int, default=12, help="hash token length")
     pr.add_argument("--keep-last", type=int, default=4, help="kept chars in partial mode")
     pr.set_defaults(func=_cmd_redact)
@@ -220,7 +295,17 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except BrokenPipeError:
+        # Downstream consumer (e.g. `| head`) closed the pipe: exit quietly
+        # with the I/O-error code instead of a traceback. Redirect stdout to
+        # devnull so the interpreter's shutdown flush cannot raise again.
+        try:
+            sys.stdout = open(os.devnull, "w", encoding="utf-8")
+        except OSError:
+            pass
+        return 2
 
 
 if __name__ == "__main__":
