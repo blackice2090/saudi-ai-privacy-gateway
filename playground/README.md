@@ -1,6 +1,6 @@
 # Tabayyan Playground
 
-A lightweight, **fully-offline** web demo of [Tabayyan](https://pypi.org/project/tabayyan/).
+A lightweight, **fully-offline** web demo of [Tabayyan](https://pypi.org/project/tabayyan-privacy/).
 Paste text, click **Scan**, and see Saudi PII detected, highlighted, classified,
 and redacted — no code required.
 

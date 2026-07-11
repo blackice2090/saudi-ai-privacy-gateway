@@ -33,7 +33,7 @@ redact PII from JSON request bodies before they reach your route handlers.
 Install the optional FastAPI extra:
 
 ```bash
-pip install "tabayyan[fastapi]"
+pip install "tabayyan-privacy[fastapi]"
 ```
 
 Then add the middleware to your application:

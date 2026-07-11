@@ -210,7 +210,7 @@ Python 3.12) that surfaced all of the following.
   key) can now be persisted password-encrypted via `tabayyan.vault`
   (`save_vault`/`load_vault`, `encrypt_vault`/`decrypt_vault`). Uses the vetted
   `cryptography` library (Fernet + PBKDF2-HMAC-SHA256, 600k iterations) — no
-  home-rolled crypto — behind the optional `tabayyan[crypto]` extra, so the
+  home-rolled crypto — behind the optional `tabayyan-privacy[crypto]` extra, so the
   detection core stays zero-dependency. Files are written `0600`; wrong
   password or tampering raises a clear error.
 - **NDMO data classification:** every audit record now carries
@@ -275,7 +275,7 @@ Python 3.12) that surfaced all of the following.
   before a prompt leaves for an LLM endpoint. Cross-border transfer flagging
   (PDPL Art. 29), category-aware blocking, JSONL audit (values withheld by
   default), and a duck-typed OpenAI/Azure wrapper with tokenize-restore.
-- **Presidio integration** (`tabayyan[presidio]`): validated Saudi/Arabic
+- **Presidio integration** (`tabayyan-privacy[presidio]`): validated Saudi/Arabic
   recognizers (SA_NATIONAL_ID, SA_IQAMA, SA_IBAN, SA_CR, SA_PHONE_NUMBER,
   MEDICAL_RECORD_NUMBER, PERSON, lookalike domains). Complements Presidio;
   parity-tested against the standalone engine. Runtime core stays zero-dep.

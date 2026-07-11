@@ -1,4 +1,4 @@
-"""Microsoft Presidio integration (optional extra: `tabayyan[presidio]`).
+"""Microsoft Presidio integration (optional extra: `tabayyan-privacy[presidio]`).
 
 Exposes Tabayyan's *validated* Saudi/Arabic detectors as Presidio
 recognizers, so existing Presidio users gain Saudi coverage with one
@@ -21,7 +21,7 @@ try:
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
         "The Presidio integration requires presidio-analyzer. "
-        "Install it with:  pip install 'tabayyan[presidio]'"
+        "Install it with:  pip install 'tabayyan-privacy[presidio]'"
     ) from exc
 
 from ..detectors import SAUDI_DETECTORS, ArabicNameDetector

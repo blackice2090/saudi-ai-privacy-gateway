@@ -5,7 +5,7 @@ add Tabayyan's **validated** Saudi/Arabic recognizers with one import. The
 extra is optional:
 
 ```bash
-pip install "tabayyan[presidio]"
+pip install "tabayyan-privacy[presidio]"
 ```
 
 ```python
