@@ -7,13 +7,19 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest]
         python-version: ["3.9", "3.11", "3.13"]
+        include:
+          # Windows coverage: the core is pure Python, one interpreter is
+          # enough to catch path/encoding/permission differences.
+          - os: windows-latest
+            python-version: "3.12"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
@@ -26,11 +32,35 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
       - name: Install with Presidio extra
         run: pip install -e ".[dev,presidio]"
       - name: Run integration tests
         run: pytest tests/test_presidio_integration.py -q
+
+  wheel-smoke:
+    # Installed-artifact validation: build the wheel, install it in a clean
+    # environment (no repo checkout on sys.path), and exercise import + CLI.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Build wheel
+        run: |
+          pip install build
+          python -m build --wheel
+      - name: Install wheel in a fresh venv and smoke-test
+        run: |
+          python -m venv /tmp/wheelenv
+          /tmp/wheelenv/bin/pip install dist/*.whl
+          cd /tmp
+          /tmp/wheelenv/bin/python -c "import tabayyan; print(tabayyan.__version__)"
+          /tmp/wheelenv/bin/tabayyan --version
+          echo "National ID 1158813996" | /tmp/wheelenv/bin/tabayyan scan - --fail-on-find && exit 1 || test $? -eq 1
+          echo "National ID 1158813996" | /tmp/wheelenv/bin/tabayyan redact - --mode mask | grep -q "\[SAUDI_NATIONAL_ID\]"
+          echo "nothing sensitive" | /tmp/wheelenv/bin/tabayyan scan - --fail-on-find
