@@ -17,7 +17,10 @@ live, external endpoints (e.g. *.openai.azure.com) are flagged.
 """
 from __future__ import annotations
 
+import ipaddress
 import json
+import os
+import threading
 import warnings
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -57,6 +60,33 @@ def is_in_kingdom(destination: str | None, allowlist: Sequence[str] = ()) -> boo
     return False
 
 
+# Hostnames that mean "this process / this machine" rather than a network
+# destination. Data sent there never leaves the environment, so it cannot
+# constitute a cross-border transfer.
+_LOCAL_HOSTS = {"local", "localhost"}
+
+
+def is_local_destination(destination: str | None) -> bool:
+    """True when the destination cannot be a cross-border transfer target:
+    no destination at all, the documented ``"local"`` placeholder,
+    ``localhost``, or a loopback IP (127.0.0.0/8, ``::1``).
+
+    Unparseable hosts return False so unknown destinations stay conservative
+    (flagged, not silently trusted).
+    """
+    if destination is None:
+        return True
+    host = host_of(destination)
+    if host is None:
+        return False
+    if host in _LOCAL_HOSTS:
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
 @dataclass
 class AuditRecord:
     timestamp: str
@@ -74,6 +104,7 @@ class AuditRecord:
     data_classification: str | None = None   # highest NDMO level present
     classification_summary: dict = field(default_factory=dict)  # level -> count
     values: list | None = None      # raw values, only if explicitly enabled
+    destination_scope: str = "unknown"  # none | local | in_kingdom | external | unknown
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False)
@@ -89,18 +120,32 @@ class ProtectResult:
 
 
 class AuditLog:
-    """Append-only audit sink. Writes JSONL to a path and/or a callable."""
+    """Append-only audit sink. Writes JSONL to a path and/or a callable.
+
+    File safety: the JSONL file is created with owner-only permissions
+    (0600) where the platform supports POSIX modes; on Windows this is
+    advisory (NTFS ACLs govern access — restrict the containing directory).
+    Writes within one process are serialized with a lock. Across processes
+    the file is opened in append mode but lines are not locked: run one
+    writer per audit file, or point each process at its own path.
+    """
 
     def __init__(self, path: str | None = None, sink: Callable[[AuditRecord], None] | None = None):
         self.path = path
         self.sink = sink
         self.records: list[AuditRecord] = []
+        self._lock = threading.Lock()
 
     def record(self, rec: AuditRecord) -> None:
-        self.records.append(rec)
-        if self.path:
-            with open(self.path, "a", encoding="utf-8") as fh:
-                fh.write(rec.to_json() + "\n")
+        line = rec.to_json() + "\n"
+        with self._lock:
+            self.records.append(rec)
+            if self.path:
+                # O_APPEND for atomic-append semantics; 0600 so a fresh audit
+                # file is never world-readable (mode applies at creation).
+                fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+                with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                    fh.write(line)
         if self.sink:
             self.sink(rec)
 
@@ -144,7 +189,22 @@ class Guard:
         health = Category.SENSITIVE_HEALTH in categories
 
         in_kingdom = is_in_kingdom(destination, self.in_kingdom_hosts)
-        cross_border = bool(personal and in_kingdom is not True and destination is not None)
+        local = is_local_destination(destination)
+        # Cross-border requires personal data AND a real external destination.
+        # Local destinations (no destination, "local", localhost, loopback)
+        # never leave the environment; unknown external hosts stay flagged
+        # (fail closed).
+        cross_border = bool(personal and not local and in_kingdom is not True)
+        if destination is None:
+            destination_scope = "none"
+        elif local:
+            destination_scope = "local"
+        elif in_kingdom is True:
+            destination_scope = "in_kingdom"
+        elif in_kingdom is False:
+            destination_scope = "external"
+        else:
+            destination_scope = "unknown"
 
         block = bool(self.block_categories & categories) or (cross_border and self.block_cross_border)
 
@@ -184,6 +244,7 @@ class Guard:
             data_classification=(c.value if (c := classify(matches)) else None),
             classification_summary=classification_summary(matches),
             values=[m.value for m in matches] if self.record_values else None,
+            destination_scope=destination_scope,
         )
         if self.audit:
             self.audit.record(rec)

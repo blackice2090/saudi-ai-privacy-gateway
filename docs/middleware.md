@@ -269,9 +269,16 @@ POST /echo  -> skipped because /echo is not included
 
 ## Cross-border logic (PDPL Art. 29)
 
-If personal data is present **and** the destination is not in-Kingdom, the
-call is flagged as a cross-border transfer. "In-Kingdom" means a `.sa` host or
-a host in `in_kingdom_hosts`.
+If personal data is present **and** the destination is a real external
+endpoint that is not in-Kingdom, the call is flagged as a cross-border
+transfer. "In-Kingdom" means a `.sa` host or a host in `in_kingdom_hosts`.
+
+Local destinations are never cross-border: no destination at all, the
+`"local"` placeholder, `localhost`, and loopback IPs (`127.0.0.1`, `::1`)
+describe processing that stays on the machine. Unknown or unparseable
+external hosts remain flagged (fail closed). Every audit record also carries
+`destination_scope` — one of `none`, `local`, `in_kingdom`, `external`, or
+`unknown` — so reviewers can distinguish real transfers from local runs.
 
 Until your in-Kingdom endpoint is live, external endpoints such as
 `*.openai.azure.com` are flagged — exactly the evidence trail a reviewer
