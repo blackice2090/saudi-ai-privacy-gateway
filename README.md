@@ -146,9 +146,12 @@ Details in [playground/README.md](playground/README.md).
 
 ## Status
 
-Current public release: **v0.9.1**. This release adds reusable FastAPI /
-Starlette middleware with route, method, and field filtering, request-body
-limits, structured `+json` media-type support, and expanded integration tests.
+Current public release: **v0.10.0**. This release hardens the security and
+privacy edges found in a comprehensive code review: fail-closed PARTIAL
+redaction for short values, enforced middleware decisions (400 on malformed
+JSON, 403 on blocked requests), accurate cross-border audit semantics,
+reliable CLI exit codes, tool-payload redaction for LLM providers, and a
+deterministic sdist with `py.typed`.
 Pre-1.0 version numbers track development milestones, and the CHANGELOG
 documents each one.
 API guarantees and experimental surfaces are described in
@@ -449,7 +452,8 @@ tabayyan/
 - **v0.8.0** — Playground demo web UI, README UX overhaul, and the official brand identity.
 - **v0.8.1** — FastAPI middleware hardening, request body limits, field filtering, CI cleanup, and release polish.
 - **v0.9.0** — reusable FastAPI/Starlette request middleware: route, method, and field filtering; request-body limits; structured `+json` media types; expanded integration tests.
-- **v0.9.1** *(current)* — PyPI distribution renamed to `tabayyan-privacy` (import namespace and CLI remain `tabayyan`).
+- **v0.9.1** — PyPI distribution renamed to `tabayyan-privacy` (import namespace and CLI remain `tabayyan`).
+- **v0.10.0** *(current)* — security & privacy hardening from the comprehensive code review: fail-closed redaction and middleware behavior, audit-semantics fixes, CLI exit-code contract, provider tool-payload coverage, deterministic packaging with `py.typed`, and CI release gating.
 - **Toward 1.0** — the verification, API-stability, and governance foundations are in place; 1.0 is a stabilization milestone rather than a feature one.
 
 ### After 1.0

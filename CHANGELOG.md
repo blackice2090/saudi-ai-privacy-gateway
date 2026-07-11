@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.10.0
 
 Security & privacy fixes from the 0.9.1 comprehensive code review
-(tracking: issue #26). Middleware failure behavior changes are observable;
-the next release should be a **minor** version (0.10.0).
+(tracking: issue #26). A minor version because middleware failure behavior,
+CLI error exit codes, and extension-loading semantics changed observably —
+details below.
 
 - **Redaction:** `partial` mode now fully masks values no longer than
   `keep_last` instead of returning them unchanged (previously a short value —
