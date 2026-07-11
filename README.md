@@ -215,6 +215,10 @@ tabayyan scan ./src --fail-on-find
 
 Filters: `--min-confidence {low,medium,high}`, `--only TYPE...`, `--exclude TYPE...`.
 
+`scan` prints matched values by default — add `--no-values` before piping into
+CI logs or tickets. Exit codes and hash-key sources (`--salt-file`,
+`TABAYYAN_SALT`) are documented in [docs/cli.md](docs/cli.md).
+
 ## Redaction modes
 
 | Mode | Output for a National ID | Use case |
@@ -273,7 +277,7 @@ This is not in the default PII detector set — construct
 Reproducible on a synthetic corpus with hard negatives:
 
 ```bash
-python benchmarks/run.py --write  # writes benchmarks/RESULTS.md
+python -m benchmarks.run --write  # writes benchmarks/RESULTS.md
 ```
 
 The headline is the false-positive contrast against a naive format-only regex —
@@ -357,7 +361,7 @@ parity-tested against the standalone engine. See
 Single-threaded, default detector set, on synthetic text:
 
 ```bash
-python benchmarks/perf.py
+python -m benchmarks.perf
 ```
 
 Overlap resolution sorts in O(n log n) and accepts each match with two bisect
@@ -443,7 +447,9 @@ tabayyan/
 - **v0.7** — detector plugin system (`register_detector` + opt-in `entry_points` discovery); verification & governance: property-based tests, golden corpus + contract tests, frozen public-API + SemVer/deprecation policy; expanded threat model; scheduled fuzzing; and release-engineering docs (RELEASE, compatibility matrix, ADRs, detector guide).
 - **v0.7.1 – v0.7.2** — community-review fixes (README ID checksum + regression test, `keep_last` alias, Windows/Arabic-name docs); richer PyPI metadata.
 - **v0.8.0** — Playground demo web UI, README UX overhaul, and the official brand identity.
-- **v0.8.1** *(current)* — FastAPI middleware hardening, request body limits, field filtering, CI cleanup, and release polish.
+- **v0.8.1** — FastAPI middleware hardening, request body limits, field filtering, CI cleanup, and release polish.
+- **v0.9.0** — reusable FastAPI/Starlette request middleware: route, method, and field filtering; request-body limits; structured `+json` media types; expanded integration tests.
+- **v0.9.1** *(current)* — PyPI distribution renamed to `tabayyan-privacy` (import namespace and CLI remain `tabayyan`).
 - **Toward 1.0** — the verification, API-stability, and governance foundations are in place; 1.0 is a stabilization milestone rather than a feature one.
 
 ### After 1.0

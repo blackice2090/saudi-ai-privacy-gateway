@@ -9,6 +9,12 @@ and redacted — no code required.
 > `RedactionMode`) and duplicates no business logic. The core package is
 > unchanged.
 
+> [!WARNING]
+> **Local demo only — do not expose it publicly.** The playground has no
+> authentication, no rate limiting, no request-size cap of its own, and the
+> `/api/redact` response echoes the original input text back to the caller.
+> Run it on localhost for demonstrations; it is not a hosted service.
+
 ## Run it
 
 ```bash
