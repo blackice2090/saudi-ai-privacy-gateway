@@ -3,8 +3,8 @@
 <img src="docs/assets/brand/tabayyan-lockup.svg" alt="Tabayyan — Saudi-first PII detection &amp; redaction for LLM pipelines" width="540">
 
 <p>
-<a href="https://pypi.org/project/tabayyan/"><img src="https://img.shields.io/pypi/v/tabayyan-privacy.svg" alt="PyPI"></a>
-<a href="https://pypi.org/project/tabayyan/"><img src="https://img.shields.io/pypi/pyversions/tabayyan-privacy.svg" alt="Python"></a>
+<a href="https://pypi.org/project/tabayyan-privacy/"><img src="https://img.shields.io/pypi/v/tabayyan-privacy.svg" alt="PyPI"></a>
+<a href="https://pypi.org/project/tabayyan-privacy/"><img src="https://img.shields.io/pypi/pyversions/tabayyan-privacy.svg" alt="Python"></a>
 <a href="https://github.com/blackice2090/saudi-ai-privacy-gateway/actions/workflows/tests.yml"><img src="https://github.com/blackice2090/saudi-ai-privacy-gateway/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache-2.0"></a>
 </p>
@@ -160,8 +160,19 @@ API guarantees and experimental surfaces are described in
 pip install tabayyan-privacy     # core (zero dependencies)
 pip install "tabayyan-privacy[crypto]"   # + encrypted tokenize vault
 pip install "tabayyan-privacy[presidio]" # + Microsoft Presidio recognizers
+pip install "tabayyan-privacy[fastapi]"  # + FastAPI/Starlette middleware
 # from source (dev): pip install -e ".[dev]"
 ```
+
+> [!IMPORTANT]
+> **Migrating from the old `tabayyan` distribution (≤ 0.8.x)?** The PyPI
+> project was renamed to `tabayyan-privacy` in 0.9.1; the import namespace
+> and CLI are still `tabayyan`. Both distributions install into the same
+> `tabayyan/` package directory, so remove the old one first:
+>
+> ```bash
+> pip uninstall tabayyan && pip install tabayyan-privacy
+> ```
 
 ## Quick start
 

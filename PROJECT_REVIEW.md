@@ -244,7 +244,7 @@ Documentation areas:
 - Install command for the optional FastAPI extra:
 
 ```bash
-pip install "tabayyan[fastapi]"
+pip install "tabayyan-privacy[fastapi]"
 ```
 
 Basic middleware usage example:

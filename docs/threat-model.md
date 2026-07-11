@@ -90,7 +90,7 @@ Legend: ✅ mitigated for supported rules · ⚠ partial / conditional · ⚪ up
 - In **tokenize** mode the vault (token → original) is the reversal key. Store
   it with the controls you'd apply to the original data —
   `tabayyan.vault.save_vault()` persists it password-encrypted (Fernet +
-  PBKDF2-HMAC-SHA256, via `tabayyan[crypto]`). Treat `hash` output as
+  PBKDF2-HMAC-SHA256, via `tabayyan-privacy[crypto]`). Treat `hash` output as
   pseudonymous, not anonymous.
 - Detector plugins loaded via `discover_plugins()` execute third-party code;
   discovery is opt-in for this reason. Treat installed plugins as trusted code.

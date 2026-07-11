@@ -12,7 +12,7 @@ minimal.
 ## Decision
 
 Ship a **single package** with internal layering and **optional extras** for
-heavy dependencies (`tabayyan[crypto]`, `tabayyan[presidio]`). The detection
+heavy dependencies (`tabayyan-privacy[crypto]`, `tabayyan-privacy[presidio]`). The detection
 core stays zero-dependency; nothing heavy is imported unless its extra is used.
 
 ## Consequences

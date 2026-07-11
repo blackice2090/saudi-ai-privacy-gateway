@@ -4,7 +4,7 @@ import stat
 
 import pytest
 
-pytest.importorskip("cryptography")  # encrypted vault needs tabayyan[crypto]
+pytest.importorskip("cryptography")  # encrypted vault needs tabayyan-privacy[crypto]
 
 from tabayyan import (  # noqa: E402
     RedactionMode, decrypt_vault, encrypt_vault, load_vault, restore,

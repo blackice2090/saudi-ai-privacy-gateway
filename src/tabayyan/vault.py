@@ -10,7 +10,7 @@ Design choice: we do **not** roll our own crypto. Encryption uses the vetted
 with a key derived from the password via PBKDF2-HMAC-SHA256. It is an optional
 extra so the detection core stays zero-dependency:
 
-    pip install "tabayyan[crypto]"
+    pip install "tabayyan-privacy[crypto]"
 
 Envelope format (JSON, versioned):
     {"v": 1, "kdf": "pbkdf2-sha256", "iterations": N, "salt": b64, "token": fernet}
@@ -24,7 +24,7 @@ import os
 _PBKDF2_ITERATIONS = 600_000  # OWASP 2023 guidance for PBKDF2-HMAC-SHA256
 _INSTALL_HINT = (
     "encrypted vault requires the 'cryptography' package. Install with: "
-    'pip install "tabayyan[crypto]"'
+    'pip install "tabayyan-privacy[crypto]"'
 )
 
 

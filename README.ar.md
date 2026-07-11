@@ -23,7 +23,7 @@
 ## التثبيت والبدء
 
 ```bash
-pip install tabayyan
+pip install tabayyan-privacy
 ```
 ```python
 from tabayyan import scan, scan_and_redact, RedactionMode
@@ -59,7 +59,7 @@ pr.audit.cross_border_transfer  # True للـ endpoints الخارجية مع ب
 تستخدم [Microsoft Presidio](https://microsoft.github.io/presidio/)؟ أضف كاشفات تبيّن المُتحقَّقة بسطر واحد:
 
 ```bash
-pip install "tabayyan[presidio]"
+pip install "tabayyan-privacy[presidio]"
 ```
 ```python
 from presidio_analyzer import AnalyzerEngine
