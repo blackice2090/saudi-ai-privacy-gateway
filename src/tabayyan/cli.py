@@ -79,7 +79,11 @@ def _iter_inputs(paths: list[str], errors: list[str]) -> Iterable[tuple[str, str
 
 def _engine_from_args(args) -> DetectionEngine:
     cfg = getattr(args, "config", None)
-    return Config.from_file(cfg).build_engine() if cfg else DetectionEngine()
+    if not cfg:
+        return DetectionEngine()
+    config = Config.from_file(cfg)
+    config.apply_confusables()  # CLI runs are process-scoped; opt in globally
+    return config.build_engine()
 
 
 def _filter_matches(matches: list[Match], args) -> list[Match]:

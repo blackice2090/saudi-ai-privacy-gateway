@@ -28,12 +28,14 @@ Two ways to extend the default detector set without touching the core:
 from __future__ import annotations
 
 import importlib.metadata as _im
+import warnings
 
 from .base import Detector
 
 ENTRYPOINT_GROUP = "tabayyan.detectors"
 
 _REGISTERED: list[Detector] = []
+_DISCOVERED: set[str] = set()  # entry points already loaded (idempotency)
 
 
 def _coerce(obj) -> Detector:
@@ -58,8 +60,9 @@ def registered_detectors() -> list[Detector]:
 
 
 def unregister_all() -> None:
-    """Clear the registry (mainly for tests)."""
+    """Clear the registry and discovery state (mainly for tests)."""
     _REGISTERED.clear()
+    _DISCOVERED.clear()
 
 
 def _iter_entry_points(group: str):
@@ -74,10 +77,30 @@ def discover_plugins() -> list[Detector]:
     group and register them. Returns the newly-registered detectors.
 
     Opt-in by design: third-party detector code runs only when you call this.
+
+    Robustness:
+      * **Idempotent** — an entry point already loaded by a previous call is
+        skipped, so repeated discovery never registers duplicates.
+      * **Isolated failures** — one broken plugin does not abort discovery:
+        the failure is reported as a RuntimeWarning naming the entry point,
+        and the remaining plugins still load.
     """
     found: list[Detector] = []
     for ep in _iter_entry_points(ENTRYPOINT_GROUP):
-        det = _coerce(ep.load())
+        name = getattr(ep, "name", repr(ep))
+        key = f"{name}={getattr(ep, 'value', '')}"
+        if key in _DISCOVERED:
+            continue
+        try:
+            det = _coerce(ep.load())
+        except Exception as exc:  # plugin code is third-party: contain it
+            warnings.warn(
+                f"tabayyan: failed to load detector plugin {name!r}: "
+                f"{type(exc).__name__}: {exc}",
+                RuntimeWarning, stacklevel=2,
+            )
+            continue
+        _DISCOVERED.add(key)
         _REGISTERED.append(det)
         found.append(det)
     return found
