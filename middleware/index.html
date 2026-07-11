@@ -1,0 +1,1614 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Saudi-aware PII detection & redaction for LLM pipelines">
+      
+      
+      
+      
+        <link rel="prev" href="../detectors/">
+      
+      
+        <link rel="next" href="../presidio/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/brand/png/tabayyan-icon-32.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Middleware & audit - Tabayyan</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#middleware-audit" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Tabayyan" class="md-header__button md-logo" aria-label="Tabayyan" data-md-component="logo">
+      
+  <img src="../assets/brand/tabayyan-glyph-white.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Tabayyan
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Middleware & audit
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="indigo"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Tabayyan" class="md-nav__button md-logo" aria-label="Tabayyan" data-md-component="logo">
+      
+  <img src="../assets/brand/tabayyan-glyph-white.svg" alt="logo">
+
+    </a>
+    Tabayyan
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../showcase/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../detectors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Detectors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Middleware & audit
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Middleware & audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#fastapi-starlette-request-middleware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FastAPI / Starlette request middleware
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FastAPI / Starlette request middleware">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#json-media-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON media types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#route-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Route filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http-method-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP method filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cross-border-logic-pdpl-art-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-border logic (PDPL Art. 29)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#blocking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blocking
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wrapping-any-llm-client-one-guard-every-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wrapping any LLM client — one guard, every SDK
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ndmo-data-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NDMO data classification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#audit-privacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Audit privacy
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../presidio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Presidio integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../detector-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a detector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../threat-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Threat model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API stability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../brand/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Brand
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_16" >
+        
+          
+          <label class="md-nav__link" for="__nav_16" id="__nav_16_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_16">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0001-normalize-before-detect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0001 Normalize before detect
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0002-single-package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0002 Single package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0003-opt-in-plugin-discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0003 Opt-in plugin discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0004-api-stability-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0004 API stability strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0005-unicode-normalization-philosophy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0005 Unicode normalization philosophy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/0006-detector-validator-separation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0006 Detector/validator separation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../REFERENCES/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    References
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#fastapi-starlette-request-middleware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FastAPI / Starlette request middleware
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FastAPI / Starlette request middleware">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#json-media-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON media types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#route-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Route filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#http-method-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP method filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cross-border-logic-pdpl-art-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-border logic (PDPL Art. 29)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#blocking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blocking
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wrapping-any-llm-client-one-guard-every-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wrapping any LLM client — one guard, every SDK
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ndmo-data-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NDMO data classification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#audit-privacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Audit privacy
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="middleware-audit">Middleware &amp; audit</h1>
+<p><code>Guard</code> sits between your application and an LLM endpoint: it scans a prompt,
+redacts personal data before it leaves, and emits a structured audit record.
+The record is the <strong>compensating-control evidence</strong> — what was detected, what
+was redacted, the data categories, and whether the destination is a
+cross-border transfer. Stdlib only; the OpenAI/Azure wrapper is duck-typed.</p>
+<pre><code class="language-python">from tabayyan import AuditLog, Guard, RedactionMode
+
+guard = Guard(
+    mode=RedactionMode.MASK,
+    in_kingdom_hosts=[&quot;llm.myhospital.health.sa&quot;],
+    audit=AuditLog(path=&quot;audit.jsonl&quot;),
+)
+
+pr = guard.protect(
+    &quot;اسم المريض عبدالله القحطاني، الهوية 1158813996&quot;,
+    destination=&quot;https://contoso.openai.azure.com/v1/chat&quot;,
+)
+
+print(pr.text)                         # redacted
+print(pr.audit.cross_border_transfer)  # True — external endpoint + personal data
+print(pr.audit.health_data_present)    # category-aware
+</code></pre>
+<h2 id="fastapi-starlette-request-middleware">FastAPI / Starlette request middleware</h2>
+<p>For FastAPI and Starlette applications, use <code>TabayyanPrivacyMiddleware</code> to
+redact PII from JSON request bodies before they reach your route handlers.</p>
+<p>Install the optional FastAPI extra:</p>
+<pre><code class="language-bash">pip install &quot;tabayyan-privacy[fastapi]&quot;
+</code></pre>
+<p>Then add the middleware to your application:</p>
+<pre><code class="language-python">from fastapi import FastAPI
+
+from tabayyan.integrations.fastapi import TabayyanPrivacyMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    TabayyanPrivacyMiddleware,
+    destination=&quot;https://api.openai.com&quot;,
+)
+</code></pre>
+<p>Any string value inside a JSON body is scanned and protected, including nested
+objects and lists.</p>
+<pre><code class="language-python">@app.post(&quot;/chat&quot;)
+def chat(payload: dict[str, object]) -&gt; dict[str, object]:
+    # The payload has already been protected by the middleware.
+    return payload
+</code></pre>
+<p>Example request:</p>
+<pre><code class="language-json">{
+  &quot;prompt&quot;: &quot;رقم الهوية 1158813996، الجوال +966512345678&quot;
+}
+</code></pre>
+<p>The route receives a protected payload:</p>
+<pre><code class="language-json">{
+  &quot;prompt&quot;: &quot;رقم الهوية [SAUDI_NATIONAL_ID]، الجوال [SAUDI_MOBILE]&quot;
+}
+</code></pre>
+<p>By default, the middleware adds response headers that make protection visible to
+upstream gateways, observability tools, or tests:</p>
+<pre><code class="language-text">x-tabayyan-pii-detected: true
+x-tabayyan-redacted-count: 2
+</code></pre>
+<p>Configure the middleware when needed:</p>
+<pre><code class="language-python">from tabayyan import RedactionMode
+
+app.add_middleware(
+    TabayyanPrivacyMiddleware,
+    destination=&quot;https://api.openai.com&quot;,
+    mode=RedactionMode.MASK,
+    audit_path=&quot;audit.jsonl&quot;,
+    block_cross_border=False,
+    include_response_headers=True,
+    max_body_size=1_000_000,
+    include_fields={&quot;prompt&quot;, &quot;messages&quot;, &quot;content&quot;},
+    exclude_fields={&quot;metadata&quot;},
+    include_paths={&quot;/chat&quot;, &quot;/messages&quot;},
+    exclude_paths={&quot;/health&quot;, &quot;/metrics&quot;},
+    include_methods={&quot;POST&quot;, &quot;PUT&quot;},
+    exclude_methods={&quot;DELETE&quot;},
+)
+</code></pre>
+<p>Notes:</p>
+<ul>
+<li>JSON request bodies using <code>application/json</code> or a structured <code>+json</code>
+  media type are modified.</li>
+<li>Non-JSON and unsupported JSON-like media types pass through unchanged.</li>
+<li>Malformed JSON on a protected route is rejected with <code>400 Bad Request</code>
+  (fail closed): a body that cannot be parsed cannot be scanned, so it is
+  never forwarded to the application.</li>
+<li>With <code>block_cross_border=True</code>, a request the guard blocks is rejected
+  with <code>403 Forbidden</code> and never reaches the route handler; the response
+  body does not contain the original text.</li>
+<li><code>mode=RedactionMode.HASH</code> requires a non-empty <code>salt</code> (validated at
+  construction time, used as the HMAC key).</li>
+<li><code>mode=RedactionMode.TOKENIZE</code> is rejected at construction: the request
+  middleware has no channel to return the vault, so tokenization could
+  never be reversed. Use <code>Guard</code> directly for reversible tokenization.</li>
+<li>When nothing is redacted, the original body bytes are forwarded unchanged
+  (no re-serialization).</li>
+<li>The middleware does not call any external service.</li>
+<li><code>max_body_size</code> defaults to <code>1_000_000</code> bytes.</li>
+<li>JSON requests larger than the configured limit return <code>413 Payload Too Large</code>.</li>
+<li>Set <code>max_body_size=None</code> to disable the body size limit.</li>
+<li><code>include_fields</code> limits protection to selected JSON field names, such as
+  <code>prompt</code>, <code>messages</code>, or <code>content</code>.</li>
+<li><code>exclude_fields</code> skips selected JSON fields or subtrees, such as <code>metadata</code>.</li>
+<li><code>exclude_fields</code> takes precedence over <code>include_fields</code>.</li>
+<li><code>include_paths</code> limits middleware processing to selected exact route paths.</li>
+<li><code>exclude_paths</code> skips selected exact route paths.</li>
+<li><code>exclude_paths</code> takes precedence over <code>include_paths</code>.</li>
+<li><code>include_methods</code> limits middleware processing to selected HTTP methods.</li>
+<li><code>exclude_methods</code> skips selected HTTP methods.</li>
+<li><code>exclude_methods</code> takes precedence over <code>include_methods</code>.</li>
+<li>When route and method filters are both configured, both must match.</li>
+<li>Raw values are not written to audit logs unless audit configuration explicitly
+  enables them.</li>
+</ul>
+<h3 id="json-media-types">JSON media types</h3>
+<p>The middleware processes requests whose <code>Content-Type</code> is either:</p>
+<ul>
+<li><code>application/json</code></li>
+<li>A media type ending with the structured syntax suffix <code>+json</code></li>
+</ul>
+<p>Supported examples include:</p>
+<pre><code class="language-text">application/json
+application/json; charset=utf-8
+application/problem+json
+application/vnd.api+json
+application/merge-patch+json
+</code></pre>
+<p>Media type matching is case-insensitive, and parameters such as <code>charset</code> are
+ignored when determining whether the request contains JSON.</p>
+<p>JSON-like but unsupported media types pass through unchanged, including:</p>
+<pre><code class="language-text">application/jsonp
+text/json
+application/not-json
+</code></pre>
+<h3 id="route-filtering">Route filtering</h3>
+<p>Use <code>include_paths</code> and <code>exclude_paths</code> to control which application routes are
+processed by the middleware.</p>
+<pre><code class="language-python">app.add_middleware(
+    TabayyanPrivacyMiddleware,
+    destination=&quot;https://api.openai.com&quot;,
+    include_paths={&quot;/chat&quot;, &quot;/messages&quot;},
+    exclude_paths={&quot;/health&quot;, &quot;/metrics&quot;},
+)
+</code></pre>
+<p>Route filtering behavior:</p>
+<ul>
+<li><code>include_paths=None</code> protects every eligible JSON route.</li>
+<li><code>include_paths</code> limits protection to the configured paths.</li>
+<li><code>exclude_paths</code> skips the configured paths completely.</li>
+<li><code>exclude_paths</code> takes precedence when a path appears in both options.</li>
+<li>Route matching is exact.</li>
+<li>Wildcard and prefix matching are not currently supported.</li>
+<li>Configured paths are normalized.</li>
+<li>Values such as <code>chat/</code>, <code>/chat/</code>, and <code>/chat</code> are treated as <code>/chat</code>.</li>
+<li>An empty configured path is normalized to <code>/</code>.</li>
+<li>Skipped routes pass through without request-body rewriting.</li>
+<li>Skipped routes do not receive <code>x-tabayyan-*</code> response headers.</li>
+<li>Route filtering is evaluated before reading the request body.</li>
+<li>Route filtering is evaluated before request-body size validation.</li>
+</ul>
+<p>For example, this configuration protects <code>/chat</code> but skips <code>/health</code>:</p>
+<pre><code class="language-python">app.add_middleware(
+    TabayyanPrivacyMiddleware,
+    include_paths={&quot;/chat&quot;, &quot;/health&quot;},
+    exclude_paths={&quot;/health&quot;},
+)
+</code></pre>
+<p>In this case:</p>
+<pre><code class="language-text">POST /chat    -&gt; protected
+POST /health  -&gt; skipped because exclusions take precedence
+POST /echo    -&gt; skipped because it is not included
+</code></pre>
+<h3 id="http-method-filtering">HTTP method filtering</h3>
+<p>Use <code>include_methods</code> to process only selected HTTP methods, or
+<code>exclude_methods</code> to skip selected methods:</p>
+<pre><code class="language-python">app.add_middleware(
+    TabayyanPrivacyMiddleware,
+    include_methods={&quot;POST&quot;, &quot;PUT&quot;},
+    exclude_methods={&quot;DELETE&quot;},
+)
+</code></pre>
+<p>HTTP method filtering behavior:</p>
+<ul>
+<li><code>include_methods=None</code> protects every otherwise eligible HTTP method.</li>
+<li><code>include_methods</code> limits processing to the configured methods.</li>
+<li><code>exclude_methods</code> skips the configured methods completely.</li>
+<li><code>exclude_methods</code> takes precedence when a method appears in both options.</li>
+<li>Method names are normalized by trimming whitespace and converting them to
+  uppercase.</li>
+<li>Values such as <code>"post"</code>, <code>" POST "</code>, and <code>"Post"</code> are treated as <code>"POST"</code>.</li>
+<li>Skipped methods pass through without request-body rewriting.</li>
+<li>Skipped methods do not receive <code>x-tabayyan-*</code> response headers.</li>
+<li>Method filtering is evaluated before JSON detection.</li>
+<li>Method filtering is evaluated before reading the request body.</li>
+<li>Method filtering is evaluated before request-body size validation.</li>
+<li>When route and method filters are both configured, a request must satisfy
+  both filters to be processed.</li>
+</ul>
+<p>For example:</p>
+<pre><code class="language-python">app.add_middleware(
+    TabayyanPrivacyMiddleware,
+    include_paths={&quot;/chat&quot;},
+    include_methods={&quot;POST&quot;},
+)
+</code></pre>
+<p>This produces:</p>
+<pre><code class="language-text">POST /chat  -&gt; protected
+PUT  /chat  -&gt; skipped because PUT is not included
+POST /echo  -&gt; skipped because /echo is not included
+</code></pre>
+<h2 id="cross-border-logic-pdpl-art-29">Cross-border logic (PDPL Art. 29)</h2>
+<p>If personal data is present <strong>and</strong> the destination is a real external
+endpoint that is not in-Kingdom, the call is flagged as a cross-border
+transfer. "In-Kingdom" means a <code>.sa</code> host or a host in <code>in_kingdom_hosts</code>.</p>
+<p>Local destinations are never cross-border: no destination at all, the
+<code>"local"</code> placeholder, <code>localhost</code>, and loopback IPs (<code>127.0.0.1</code>, <code>::1</code>)
+describe processing that stays on the machine. Unknown or unparseable
+external hosts remain flagged (fail closed). Every audit record also carries
+<code>destination_scope</code> — one of <code>none</code>, <code>local</code>, <code>in_kingdom</code>, <code>external</code>, or
+<code>unknown</code> — so reviewers can distinguish real transfers from local runs.</p>
+<p>Until your in-Kingdom endpoint is live, external endpoints such as
+<code>*.openai.azure.com</code> are flagged — exactly the evidence trail a reviewer
+expects for a conditional cloud-AI pilot.</p>
+<h2 id="blocking">Blocking</h2>
+<pre><code class="language-python">from tabayyan.entities import Category
+
+# Block any cross-border transfer containing personal data.
+guard = Guard(block_cross_border=True)
+
+# Block sensitive health data outright.
+guard = Guard(
+    block_categories=[Category.SENSITIVE_HEALTH],
+)
+</code></pre>
+<h2 id="wrapping-any-llm-client-one-guard-every-sdk">Wrapping any LLM client — one guard, every SDK</h2>
+<p><code>Guard.wrap()</code> returns a uniform proxy with a single <code>create(**kwargs)</code> method.
+The provider is auto-detected from the client's shape, or set explicitly.</p>
+<p>PII in the request is redacted before the call. For Anthropic clients, this
+includes both message content and the <code>system</code> prompt. Tool payloads are
+covered too: OpenAI <code>tool_calls[].function.arguments</code> (and the legacy
+<code>function_call.arguments</code>), Anthropic <code>tool_use.input</code>, and <code>tool_result</code>
+content are all scanned.</p>
+<p><code>protect_messages</code> understands <strong>plain dict</strong> messages whose content is a
+string or a list of dict parts — the shapes the SDKs serialize. A message it
+does not understand (for example a typed SDK object) is passed through
+subject to the guard's <code>on_unrecognized</code> policy:</p>
+<pre><code class="language-python">Guard(on_unrecognized=&quot;warn&quot;)   # default: UnscannedContentWarning + pass through
+Guard(on_unrecognized=&quot;error&quot;)  # fail closed: raise instead of forwarding
+Guard(on_unrecognized=&quot;pass&quot;)   # silent pass-through (not recommended)
+</code></pre>
+<p>Silence is the wrong failure mode for a privacy gateway — do not disable the
+warning unless you are certain no PII can appear in those objects. Convert
+typed objects to dicts (most SDKs accept plain dicts) to get full coverage.</p>
+<pre><code class="language-python"># OpenAI / Azure — auto-detected.
+gpt = guard.wrap(
+    OpenAI(...),
+    destination=&quot;https://contoso.openai.azure.com&quot;,
+)
+
+gpt.create(
+    model=&quot;gpt-4o&quot;,
+    messages=[...],
+)
+
+# Anthropic / Claude — auto-detected.
+claude = guard.wrap(Anthropic(...))
+
+claude.create(
+    model=&quot;claude-sonnet-4-6&quot;,
+    system=&quot;...&quot;,
+    messages=[...],
+)
+
+# Force a provider or use a registered custom adapter.
+client = guard.wrap(
+    my_client,
+    provider=&quot;anthropic&quot;,
+)
+</code></pre>
+<p>Built-in adapters cover OpenAI/Azure and Anthropic. Teach Tabayyan a new SDK
+with <code>register_adapter</code>:</p>
+<pre><code class="language-python">from tabayyan import register_adapter
+
+
+class MyAdapter:
+    name = &quot;myllm&quot;
+
+    def matches(self, client):
+        ...
+
+    def redact_request(self, guard, kwargs, destination):
+        # Return: audits, vault, blocked
+        ...
+
+    def invoke(self, client, kwargs):
+        ...
+
+    def restore_response(self, response, vault):
+        ...
+
+
+register_adapter(MyAdapter())
+</code></pre>
+<p>With <code>RedactionMode.TOKENIZE</code> and <code>restore_response=True</code>, the wrapper restores
+original values in the model response so personalization can survive.</p>
+<p>For zero magic, the fully provider-agnostic building block is:</p>
+<pre><code class="language-python">safe_messages, audits, vault, blocked = guard.protect_messages(
+    messages,
+    destination=&quot;https://api.openai.com&quot;,
+)
+</code></pre>
+<p>Redact the messages first, then call your client directly.</p>
+<blockquote>
+<p><code>guard_openai()</code> is deprecated in favour of
+<code>wrap(client, provider="openai")</code>. It still works and emits a
+<code>DeprecationWarning</code>.</p>
+</blockquote>
+<h2 id="ndmo-data-classification">NDMO data classification</h2>
+<p>Every audit record carries <code>data_classification</code> — the highest NDMO sensitivity
+level among the detected entities — plus a <code>classification_summary</code> mapping
+each level to its count.</p>
+<p>Health data classifies as <strong>secret</strong>. Most personal identifiers, financial
+data, contact data, and names classify as <strong>confidential</strong>. Organization and
+network identifiers classify as <strong>public</strong>.</p>
+<pre><code class="language-python">pr = guard.protect(
+    &quot;MRN: A1234, ID 1158813996&quot;,
+    destination=&quot;https://api.openai.com&quot;,
+)
+
+pr.audit.data_classification
+# &quot;secret&quot; — health data outranks the national identifier
+
+pr.audit.classification_summary
+# {&quot;secret&quot;: 1, &quot;confidential&quot;: 1}
+</code></pre>
+<p>The mapping is a practical default. Override
+<code>tabayyan.ndmo.CATEGORY_CLASSIFICATION</code> to match your organization's data
+classification matrix.</p>
+<p>Use classification directly without the middleware through:</p>
+<pre><code class="language-python">from tabayyan import classification_summary, classify
+
+level = classify(matches)
+summary = classification_summary(matches)
+</code></pre>
+<h2 id="audit-privacy">Audit privacy</h2>
+<p>Raw values are <strong>not</strong> written to the audit by default:</p>
+<pre><code class="language-python">guard = Guard(record_values=False)
+</code></pre>
+<p>The audit captures:</p>
+<ul>
+<li>Detection counts.</li>
+<li>Entity categories.</li>
+<li>Data classification.</li>
+<li>Cross-border status.</li>
+<li>Protection action.</li>
+</ul>
+<p>It does not capture the original detected values unless <code>record_values=True</code>
+is explicitly configured.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

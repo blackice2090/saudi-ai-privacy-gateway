@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tabayyan">
+  <rect width="512" height="512" rx="116" fill="#0f172a"></rect>
+  <g fill="#ffffff">
+    <circle cx="236" cy="188" r="15"></circle>
+    <circle cx="276" cy="188" r="15"></circle>
+    <rect x="156" y="224" width="200" height="27" rx="13.5" opacity="0.5"></rect>
+    <rect x="156" y="266" width="200" height="29" rx="14.5"></rect>
+    <rect x="156" y="310" width="126" height="27" rx="13.5" opacity="0.5"></rect>
+  </g>
+</svg>
