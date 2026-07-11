@@ -19,6 +19,7 @@ class RequestProtectionStats:
 
     pii_detected: bool
     redacted_count: int
+    blocked: bool = False
 
 
 class RequestBodyTooLarge(Exception):
@@ -27,6 +28,19 @@ class RequestBodyTooLarge(Exception):
     def __init__(self, max_body_size: int) -> None:
         self.max_body_size = max_body_size
         super().__init__(f"Request body exceeds max_body_size={max_body_size}")
+
+
+class ClientDisconnected(Exception):
+    """Raised when the client disconnects while the body is being read."""
+
+
+class InvalidJsonBody(Exception):
+    """Raised when a protected request declares JSON but cannot be parsed.
+
+    The middleware fails closed on such bodies: an unparseable payload cannot
+    be scanned, so forwarding it could leak PII while response headers claim
+    the request was clean.
+    """
 
 
 class TabayyanPrivacyMiddleware:
@@ -51,6 +65,7 @@ class TabayyanPrivacyMiddleware:
         *,
         destination: str = "local",
         mode: RedactionMode = RedactionMode.MASK,
+        salt: str = "",
         audit_path: str | None = None,
         block_cross_border: bool = False,
         include_response_headers: bool = True,
@@ -67,6 +82,24 @@ class TabayyanPrivacyMiddleware:
                 "max_body_size must be a non-negative integer or None"
             )
 
+        mode = RedactionMode(mode)
+        # Fail at construction, not per request: without these guards a HASH
+        # deployment would 500 on exactly the requests that contain PII, and
+        # TOKENIZE would silently discard the vault, making the redaction
+        # irreversible while looking reversible.
+        if mode is RedactionMode.HASH and not salt:
+            raise ValueError(
+                "mode=RedactionMode.HASH requires a non-empty salt (used as "
+                "the HMAC key); pass salt=... to TabayyanPrivacyMiddleware."
+            )
+        if mode is RedactionMode.TOKENIZE:
+            raise ValueError(
+                "mode=RedactionMode.TOKENIZE is not supported by the request "
+                "middleware: it has no channel to return the vault, so tokens "
+                "could never be restored. Use Guard directly if you need "
+                "reversible tokenization."
+            )
+
         self._app = app
         self._destination = destination
         self._include_response_headers = include_response_headers
@@ -81,6 +114,7 @@ class TabayyanPrivacyMiddleware:
         audit = AuditLog(path=audit_path) if audit_path else None
         self._guard = Guard(
             mode=mode,
+            salt=salt,
             audit=audit,
             block_cross_border=block_cross_border,
         )
@@ -116,20 +150,49 @@ class TabayyanPrivacyMiddleware:
         except RequestBodyTooLarge:
             await self._send_payload_too_large(send)
             return
+        except ClientDisconnected:
+            # The client went away mid-body. Never forward a truncated body
+            # downstream; there is also nobody left to answer.
+            return
 
-        protected_body, stats = self._protect_body(body)
+        try:
+            protected_body, stats = self._protect_body(body)
+        except InvalidJsonBody:
+            # Fail closed: an unparseable JSON body cannot be scanned, so it
+            # must not reach the application on a protected route.
+            await self._send_json_error(
+                send, 400, b'{"detail":"Invalid JSON request body"}'
+            )
+            return
+
+        if stats.blocked:
+            # The guard decided this request must not proceed (for example a
+            # cross-border transfer of personal data with blocking enabled).
+            await self._send_json_error(
+                send, 403, b'{"detail":"Request blocked by privacy policy"}'
+            )
+            return
 
         protected_scope = self._with_content_length(
             scope,
             len(protected_body),
         )
 
+        body_delivered = False
+
         async def protected_receive() -> Message:
-            return {
-                "type": "http.request",
-                "body": protected_body,
-                "more_body": False,
-            }
+            # Deliver the protected body exactly once; afterwards delegate to
+            # the original receive so http.disconnect (and any other events)
+            # still reach the application instead of an endless body replay.
+            nonlocal body_delivered
+            if not body_delivered:
+                body_delivered = True
+                return {
+                    "type": "http.request",
+                    "body": protected_body,
+                    "more_body": False,
+                }
+            return await receive()
 
         async def protected_send(message: Message) -> None:
             if (
@@ -308,13 +371,25 @@ class TabayyanPrivacyMiddleware:
 
         try:
             payload = json.loads(body)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as exc:
+            raise InvalidJsonBody() from exc
+        except RecursionError as exc:
+            # Pathologically deep nesting: cannot be scanned safely.
+            raise InvalidJsonBody() from exc
+
+        try:
+            protected_payload, redacted_count, blocked = self._protect_value(payload)
+        except RecursionError as exc:
+            raise InvalidJsonBody() from exc
+
+        if redacted_count == 0 and not blocked:
+            # Nothing changed: forward the original bytes so clean requests
+            # are not rewritten (preserves key order, number formatting, and
+            # any byte-level properties the application may rely on).
             return body, RequestProtectionStats(
                 pii_detected=False,
                 redacted_count=0,
             )
-
-        protected_payload, redacted_count = self._protect_value(payload)
 
         protected_body = json.dumps(
             protected_payload,
@@ -325,6 +400,7 @@ class TabayyanPrivacyMiddleware:
         return protected_body, RequestProtectionStats(
             pii_detected=redacted_count > 0,
             redacted_count=redacted_count,
+            blocked=blocked,
         )
 
     def _protect_value(
@@ -333,39 +409,42 @@ class TabayyanPrivacyMiddleware:
         *,
         field_name: str | None = None,
         force_protect: bool = False,
-    ) -> tuple[Any, int]:
+    ) -> tuple[Any, int, bool]:
         if isinstance(value, str):
             if not self._should_protect_field(
                 field_name,
                 force_protect,
             ):
-                return value, 0
+                return value, 0, False
 
             protected = self._guard.protect(
                 value,
                 destination=self._destination,
             )
 
-            return protected.text, len(protected.matches)
+            return protected.text, len(protected.matches), protected.blocked
 
         if isinstance(value, list):
             protected_items: list[Any] = []
             redacted_count = 0
+            blocked = False
 
             for item in value:
-                protected_item, item_count = self._protect_value(
+                protected_item, item_count, item_blocked = self._protect_value(
                     item,
                     field_name=field_name,
                     force_protect=force_protect,
                 )
                 protected_items.append(protected_item)
                 redacted_count += item_count
+                blocked = blocked or item_blocked
 
-            return protected_items, redacted_count
+            return protected_items, redacted_count, blocked
 
         if isinstance(value, dict):
             protected_dict: dict[str, Any] = {}
             redacted_count = 0
+            blocked = False
 
             for key, item in value.items():
                 key_name = str(key)
@@ -374,7 +453,7 @@ class TabayyanPrivacyMiddleware:
                     protected_dict[key_name] = item
                     continue
 
-                protected_item, item_count = self._protect_value(
+                protected_item, item_count, item_blocked = self._protect_value(
                     item,
                     field_name=key_name,
                     force_protect=(
@@ -384,10 +463,11 @@ class TabayyanPrivacyMiddleware:
                 )
                 protected_dict[key_name] = protected_item
                 redacted_count += item_count
+                blocked = blocked or item_blocked
 
-            return protected_dict, redacted_count
+            return protected_dict, redacted_count, blocked
 
-        return value, 0
+        return value, 0, False
 
     def _should_protect_field(
         self,
@@ -455,7 +535,9 @@ class TabayyanPrivacyMiddleware:
             message = await receive()
 
             if message["type"] == "http.disconnect":
-                break
+                # A disconnect before the body is complete must not produce a
+                # truncated body that looks complete downstream.
+                raise ClientDisconnected()
 
             chunk = message.get("body", b"")
             body_size += len(chunk)
@@ -477,12 +559,20 @@ class TabayyanPrivacyMiddleware:
         self,
         send: Send,
     ) -> None:
-        body = b'{"detail":"Request body too large"}'
+        await self._send_json_error(
+            send, 413, b'{"detail":"Request body too large"}'
+        )
 
+    async def _send_json_error(
+        self,
+        send: Send,
+        status: int,
+        body: bytes,
+    ) -> None:
         await send(
             {
                 "type": "http.response.start",
-                "status": 413,
+                "status": status,
                 "headers": [
                     (
                         b"content-type",

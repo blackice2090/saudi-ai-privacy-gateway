@@ -112,6 +112,19 @@ Notes:
 - JSON request bodies using `application/json` or a structured `+json`
   media type are modified.
 - Non-JSON and unsupported JSON-like media types pass through unchanged.
+- Malformed JSON on a protected route is rejected with `400 Bad Request`
+  (fail closed): a body that cannot be parsed cannot be scanned, so it is
+  never forwarded to the application.
+- With `block_cross_border=True`, a request the guard blocks is rejected
+  with `403 Forbidden` and never reaches the route handler; the response
+  body does not contain the original text.
+- `mode=RedactionMode.HASH` requires a non-empty `salt` (validated at
+  construction time, used as the HMAC key).
+- `mode=RedactionMode.TOKENIZE` is rejected at construction: the request
+  middleware has no channel to return the vault, so tokenization could
+  never be reversed. Use `Guard` directly for reversible tokenization.
+- When nothing is redacted, the original body bytes are forwarded unchanged
+  (no re-serialization).
 - The middleware does not call any external service.
 - `max_body_size` defaults to `1_000_000` bytes.
 - JSON requests larger than the configured limit return `413 Payload Too Large`.
