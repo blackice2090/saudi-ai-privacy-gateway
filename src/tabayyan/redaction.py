@@ -66,8 +66,12 @@ def _hash_token(value: str, salt: str, length: int) -> str:
 
 
 def _partial_token(value: str, keep_last: int, fill: str) -> str:
+    # Fail closed: if keep_last would reveal the entire value (>= its length)
+    # or is non-positive, mask everything. Returning the raw value here would
+    # silently leak short identifiers (e.g. a 4-char MRN with the default
+    # keep_last=4) through a mode the caller believes is redacting.
     if keep_last <= 0 or keep_last >= len(value):
-        return fill * len(value) if keep_last <= 0 else value
+        return fill * len(value)
     return fill * (len(value) - keep_last) + value[-keep_last:]
 
 
@@ -144,8 +148,15 @@ def redact(
         original = text[m.start:m.end]          # actual span (may differ from m.value)
         key = (name, original)
         if key not in token_for:
+            # Skip token strings that already occur in the input text:
+            # restore() rewrites every vault token it finds, so an emitted
+            # token colliding with user-authored text like "<X_1>" would
+            # inject the detected value where the author wrote a literal.
             counters[name] = counters.get(name, 0) + 1
             tok = f"<{name.upper()}_{counters[name]}>"
+            while tok in text:
+                counters[name] += 1
+                tok = f"<{name.upper()}_{counters[name]}>"
             token_for[key] = tok
             vault[tok] = original                # restore must reproduce the original
         return token_for[key]

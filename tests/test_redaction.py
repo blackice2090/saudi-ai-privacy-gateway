@@ -81,6 +81,48 @@ def test_multiple_matches_offsets_preserved():
     assert result.count == 2
 
 
+def test_partial_short_value_is_fully_masked():
+    # PRIV-001 regression: keep_last >= len(value) must never return the raw
+    # value. A 4-char MRN under the default keep_last=4 previously leaked.
+    result = scan_and_redact("MRN: AB12", "partial")
+    assert "AB12" not in result.text
+    assert result.items[0].replacement == "****"
+
+
+def test_partial_keep_last_equal_to_length_masks_everything():
+    nid = make_national_id(random.Random(47), "1")
+    result = scan_and_redact(f"id {nid}", "partial", keep_last=len(nid))
+    assert nid not in result.text
+    assert result.items[0].replacement == "*" * len(nid)
+
+
+def test_partial_keep_last_larger_than_length_masks_everything():
+    nid = make_national_id(random.Random(48), "1")
+    result = scan_and_redact(f"id {nid}", "partial", keep_last=100)
+    assert nid not in result.text
+    assert result.items[0].replacement == "*" * len(nid)
+
+
+def test_partial_zero_and_negative_keep_last_mask_everything():
+    nid = make_national_id(random.Random(49), "1")
+    for kl in (0, -3):
+        result = scan_and_redact(f"id {nid}", "partial", keep_last=kl)
+        assert nid not in result.text
+        assert result.items[0].replacement == "*" * len(nid)
+
+
+def test_partial_short_custom_detector_value_is_fully_masked():
+    from tabayyan.config import CustomRegexDetector
+    from tabayyan.entities import Category, Confidence
+
+    det = CustomRegexDetector("code", r"C-\d", Category.ORGANISATION, Confidence.MEDIUM)
+    custom_engine = DetectionEngine([det])
+    text = "ref C-7 ok"
+    result = redact(text, custom_engine.scan(text), "partial", keep_last=4)
+    assert "C-7" not in result.text
+    assert result.items[0].replacement == "***"
+
+
 def test_redact_accepts_string_mode():
     nid = make_national_id(random.Random(46), "1")
     matches = engine.scan(f"id {nid}")
