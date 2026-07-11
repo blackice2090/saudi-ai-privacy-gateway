@@ -9,7 +9,7 @@ from __future__ import annotations
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from tabayyan import RedactionMode, restore, scan_and_redact
+from tabayyan import RedactionMode, restore, scan, scan_and_redact
 from tabayyan.checksums import (
     iban_check_digits, iban_mod97_is_valid, luhn_check_digit, luhn_is_valid,
     saudi_id_check_digit, saudi_id_is_valid,
@@ -21,8 +21,11 @@ settings.register_profile("ci", deadline=None, max_examples=200)
 settings.load_profile("ci")
 
 _DIGITS = "0123456789"
-# Text without angle brackets so generated input can't collide with a
-# tokenize placeholder like <SAUDI_NATIONAL_ID_1>.
+# Historically this blacklisted angle brackets so generated input could not
+# collide with a tokenize placeholder like <SAUDI_NATIONAL_ID_1>. Token
+# assignment now skips token strings that already occur in the input, so the
+# restriction is kept only to preserve this test's historical corpus; the
+# unrestricted case is covered separately below.
 _safe_text = st.text(st.characters(blacklist_characters="<>"), max_size=120)
 
 
@@ -92,6 +95,26 @@ def test_iban_checkdigits_roundtrip(bban):
 def test_tokenize_restore_is_lossless(t):
     result = scan_and_redact(t, RedactionMode.TOKENIZE)
     assert restore(result.text, result.vault) == t
+
+
+@given(st.text(max_size=120))
+def test_tokenize_restore_is_lossless_with_token_like_text(t):
+    # BUG-004 regression: round trips must hold even when the input already
+    # contains angle brackets or literal token-shaped strings.
+    result = scan_and_redact(t, RedactionMode.TOKENIZE)
+    assert restore(result.text, result.vault) == t
+
+
+@given(st.text(max_size=200))
+def test_resolved_match_spans_are_disjoint_in_original_text(t):
+    # INFO-005 regression: after projection back onto the original text, the
+    # spans the engine returns must be in-bounds and pairwise disjoint, so
+    # redaction can never rewrite overlapping ranges.
+    spans = sorted((m.start, m.end) for m in scan(t))
+    for s, e in spans:
+        assert 0 <= s <= e <= len(t)
+    for (_, e1), (s2, _) in zip(spans, spans[1:]):
+        assert e1 <= s2
 
 
 @given(_safe_text)
