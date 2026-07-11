@@ -12,6 +12,7 @@ IDs, and multi-token names.
 """
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Iterator
 
@@ -57,12 +58,9 @@ def scan_file(
                 if key in emitted:
                     continue
                 emitted.add(key)
-                yield Match(
-                    entity_type=m.entity_type, category=m.category,
-                    confidence=m.confidence, start=base + m.start,
-                    end=base + m.end, value=m.value, detector=m.detector,
-                    notes=m.notes,
-                )
+                # replace() keeps every other Match field (label, notes, ...)
+                # intact — rebuilding field-by-field previously dropped label.
+                yield replace(m, start=base + m.start, end=base + m.end)
 
             if last:
                 break
