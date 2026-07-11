@@ -304,7 +304,25 @@ guard = Guard(
 The provider is auto-detected from the client's shape, or set explicitly.
 
 PII in the request is redacted before the call. For Anthropic clients, this
-includes both message content and the `system` prompt.
+includes both message content and the `system` prompt. Tool payloads are
+covered too: OpenAI `tool_calls[].function.arguments` (and the legacy
+`function_call.arguments`), Anthropic `tool_use.input`, and `tool_result`
+content are all scanned.
+
+`protect_messages` understands **plain dict** messages whose content is a
+string or a list of dict parts — the shapes the SDKs serialize. A message it
+does not understand (for example a typed SDK object) is passed through
+subject to the guard's `on_unrecognized` policy:
+
+```python
+Guard(on_unrecognized="warn")   # default: UnscannedContentWarning + pass through
+Guard(on_unrecognized="error")  # fail closed: raise instead of forwarding
+Guard(on_unrecognized="pass")   # silent pass-through (not recommended)
+```
+
+Silence is the wrong failure mode for a privacy gateway — do not disable the
+warning unless you are certain no PII can appear in those objects. Convert
+typed objects to dicts (most SDKs accept plain dicts) to get full coverage.
 
 ```python
 # OpenAI / Azure — auto-detected.
