@@ -106,15 +106,32 @@ def _exit_code(found_any: bool, errors: list[str], fail_on_find: bool) -> int:
     return 1 if (found_any and fail_on_find) else 0
 
 
+def _emit_scan_result(name: str, matches: list[Match], args, report: list) -> None:
+    """Print one source's matches (table mode) or append them to `report`
+    (JSON mode). Shared by the streaming and in-memory scan paths."""
+    if args.json:
+        report.append({"source": name, "matches": [m.to_dict() for m in matches]})
+        return
+    for m in matches:
+        val = "" if args.no_values else f"  {m.value!r}"
+        print(f"{name}:{m.start}-{m.end}\t{m.entity_type.value}\t"
+              f"{m.confidence.value}\t{m.category.value}{val}")
+
+
 def _cmd_scan(args) -> int:
     engine = _engine_from_args(args)
     found_any = False
     errors: list[str] = []
-    report = []
+    report: list = []
     if args.stream:
         if not args.paths or any(raw in ("", "-") for raw in args.paths):
             print("tabayyan: --stream requires file paths, not stdin", file=sys.stderr)
             return 2
+        sources = None
+    else:
+        sources = _iter_inputs(args.paths, errors)
+
+    if sources is None:
         for raw in args.paths:
             try:
                 matches = _filter_matches(list(scan_file(raw, engine)), args)
@@ -122,30 +139,14 @@ def _cmd_scan(args) -> int:
                 errors.append(raw)
                 print(f"tabayyan: cannot read '{raw}': {exc}", file=sys.stderr)
                 continue
-            if matches:
-                found_any = True
-            if args.json:
-                report.append({"source": raw, "matches": [m.to_dict() for m in matches]})
-            else:
-                for m in matches:
-                    val = "" if args.no_values else f"  {m.value!r}"
-                    print(f"{raw}:{m.start}-{m.end}\t{m.entity_type.value}\t"
-                          f"{m.confidence.value}\t{m.category.value}{val}")
-        if args.json:
-            json.dump(report, sys.stdout, ensure_ascii=False, indent=2)
-            sys.stdout.write("\n")
-        return _exit_code(found_any, errors, args.fail_on_find)
-    for name, text in _iter_inputs(args.paths, errors):
-        matches = _filter_matches(engine.scan(text), args)
-        if matches:
-            found_any = True
-        if args.json:
-            report.append({"source": name, "matches": [m.to_dict() for m in matches]})
-        else:
-            for m in matches:
-                val = "" if args.no_values else f"  {m.value!r}"
-                print(f"{name}:{m.start}-{m.end}\t{m.entity_type.value}\t"
-                      f"{m.confidence.value}\t{m.category.value}{val}")
+            found_any = found_any or bool(matches)
+            _emit_scan_result(raw, matches, args, report)
+    else:
+        for name, text in sources:
+            matches = _filter_matches(engine.scan(text), args)
+            found_any = found_any or bool(matches)
+            _emit_scan_result(name, matches, args, report)
+
     if args.json:
         json.dump(report, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
