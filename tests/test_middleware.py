@@ -354,3 +354,99 @@ def test_wrapper_streaming_redacts_request_skips_restore():
 
     # Streaming responses pass through without token restoration.
     assert list(out) == ["chunk1", "chunk2"]
+
+# --- destination semantics (PRIV-004) ---
+
+def test_local_destinations_are_not_cross_border():
+    nid = make_national_id(random.Random(95), "1")
+    g = Guard()
+    for dest in (
+        "local",
+        "http://localhost:8080",
+        "http://127.0.0.1:9000/v1",
+        "http://[::1]:8080/chat",
+        None,
+    ):
+        pr = g.protect(f"ID {nid}", destination=dest)
+        assert pr.audit.cross_border_transfer is False, dest
+        assert pr.audit.personal_data_present is True
+        assert nid not in pr.text
+
+
+def test_destination_scope_values():
+    nid = make_national_id(random.Random(96), "1")
+    g = Guard()
+    assert g.protect(f"ID {nid}", destination=None).audit.destination_scope == "none"
+    assert g.protect(f"ID {nid}", destination="local").audit.destination_scope == "local"
+    assert g.protect(f"ID {nid}", destination=INK).audit.destination_scope == "in_kingdom"
+    assert g.protect(f"ID {nid}", destination=AZURE).audit.destination_scope == "external"
+
+
+def test_unknown_external_hosts_stay_flagged():
+    # Conservative behavior: a destination we cannot resolve to a local or
+    # in-Kingdom host still counts as cross-border when personal data flows.
+    nid = make_national_id(random.Random(97), "1")
+    pr = Guard().protect(f"ID {nid}", destination="https://internal-gateway")
+    assert pr.audit.cross_border_transfer is True
+
+
+def test_host_parsing_edge_cases():
+    from tabayyan.middleware import host_of, is_local_destination
+
+    assert host_of("https://EXAMPLE.SA/path") == "example.sa"
+    assert is_in_kingdom("https://EXAMPLE.SA") is True
+    assert host_of("https://example.sa:8443") == "example.sa"
+    assert is_in_kingdom("https://example.sa:8443") is True
+    # Trailing dot is a different host string: stays conservative (flagged).
+    assert is_in_kingdom("https://example.sa.") is False
+    assert is_in_kingdom("https://api.sub.example.sa") is True
+    # Allowlist matches the host and its subdomains, not lookalike suffixes.
+    assert is_in_kingdom("https://api.trusted.example", ["trusted.example"]) is True
+    assert is_in_kingdom("https://eviltrusted.example", ["trusted.example"]) is False
+    # Loopback detection.
+    assert is_local_destination("https://127.0.0.1:8000") is True
+    assert is_local_destination("http://[::1]") is True
+    assert is_local_destination("https://10.0.0.5") is False
+    assert is_local_destination("https://api.openai.com") is False
+
+
+# --- audit file safety (INFO-004) ---
+
+def test_audit_file_created_with_owner_only_permissions(tmp_path):
+    import os
+    import stat
+    import sys
+
+    nid = make_national_id(random.Random(98), "1")
+    path = tmp_path / "audit.jsonl"
+    g = Guard(audit=AuditLog(path=str(path)))
+    g.protect(f"ID {nid}", destination=AZURE)
+
+    assert path.exists()
+    if sys.platform != "win32":
+        mode = stat.S_IMODE(os.stat(path).st_mode)
+        assert mode & 0o077 == 0, oct(mode)
+
+
+def test_audit_log_concurrent_thread_writes_stay_line_valid(tmp_path):
+    import threading
+
+    nid = make_national_id(random.Random(99), "1")
+    path = tmp_path / "audit.jsonl"
+    g = Guard(audit=AuditLog(path=str(path)))
+
+    def work():
+        for _ in range(25):
+            g.protect(f"ID {nid}", destination=AZURE)
+
+    threads = [threading.Thread(target=work) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    lines = path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 100
+    for line in lines:
+        rec = json.loads(line)  # every line is standalone valid JSON
+        assert rec["cross_border_transfer"] is True
