@@ -16,6 +16,12 @@ _CONTEXT_WINDOW = 40
 
 
 def _normalise_digits(text: str) -> str:
+    # Deliberately duplicated work when running under DetectionEngine (which
+    # already folds digits in its normalization pre-pass): detectors are also
+    # used standalone (direct .detect() calls, custom engine compositions
+    # with normalize_input=False), and this length-preserving fold keeps them
+    # safe there. str.translate is a single C-level pass; the overhead is
+    # negligible relative to the regex scans.
     return text.translate(_ARABIC_DIGITS)
 
 
@@ -117,12 +123,17 @@ class MedicalRecordNumberDetector(Detector):
 
 
 class SaudiLandlineDetector(Detector):
-    """Fixed-line numbers: +966 1X XXXXXXX or 0 1X XXXXXXX (area codes 11-17).
+    """Fixed-line numbers: +966 1X XXXXXXX or 0 1X XXXXXXX.
+
+    Area codes per the CITC/ITU-T national numbering plan for Saudi Arabia:
+    011 (Riyadh/Central), 012 (Makkah/Western), 013 (Eastern), 014
+    (Madinah/Northern), 016 (Hail/Qassim), 017 (Southern). 015 is not
+    assigned, so it is excluded to avoid false positives.
 
     Distinct prefix from mobile (5...), so it is reliable standalone.
     """
     name = "saudi_landline"
-    _pattern = re.compile(r"(?<!\d)(?:(?:00|\+)?966|0)1[1-7]\d{7}(?!\d)")
+    _pattern = re.compile(r"(?<!\d)(?:(?:00|\+)?966|0)1[1-46-7]\d{7}(?!\d)")
 
     def detect(self, text: str) -> Iterable[Match]:
         norm = _normalise_digits(text)

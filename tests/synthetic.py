@@ -43,7 +43,9 @@ def make_mobile(rng: random.Random, fmt: str = "+966") -> str:
 
 
 def make_landline(rng: random.Random, fmt: str = "0") -> str:
-    area = str(rng.randint(1, 7))
+    # Assigned area codes only (011-014, 016, 017); 015 is not part of the
+    # Saudi numbering plan and the detector rejects it.
+    area = rng.choice("123467")
     rest = "".join(str(rng.randint(0, 9)) for _ in range(7))
     body = "1" + area + rest
     if fmt == "+966":
