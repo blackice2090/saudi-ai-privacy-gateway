@@ -145,3 +145,24 @@ def test_arabic_indic_digits_in_new_entities():
     vat = make_vat(random.Random(207))
     arabic = vat.translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
     assert EntityType.SAUDI_VAT in _types(engine.scan(f"الرقم الضريبي {arabic}"))
+
+
+def test_landline_assigned_area_codes_detected():
+    # CITC/ITU-T numbering plan: 011-014, 016, 017 are assigned.
+    from tabayyan.detectors.saudi import SaudiLandlineDetector
+
+    det = SaudiLandlineDetector()
+    for area in "123467":
+        number = f"01{area}2345678"
+        matches = list(det.detect(f"call {number} now"))
+        assert len(matches) == 1, number
+        assert matches[0].entity_type.value == "saudi_landline"
+
+
+def test_landline_unassigned_015_not_detected():
+    # 015 is not part of the Saudi numbering plan (INFO-003).
+    from tabayyan.detectors.saudi import SaudiLandlineDetector
+
+    det = SaudiLandlineDetector()
+    assert list(det.detect("call 0152345678 now")) == []
+    assert list(det.detect("call +966152345678 now")) == []
